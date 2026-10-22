@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+build/
+dist/
+*.spec
+
+# Ajustes e histórico de uso local.
+Consulta_Enderecos_Oficiais/ajustes_locais.json
+Consulta_Enderecos_Oficiais/areas.json
+Consulta_Enderecos_Oficiais/consultas_realizadas.csv
+Consulta_Enderecos_Oficiais/bases_anteriores/

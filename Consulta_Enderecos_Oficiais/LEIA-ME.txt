@@ -1,0 +1,40 @@
+CONSULTA DE ENDEREÇOS E OFICIAIS — VERSÃO ATUALIZADA
+
+Novidades:
+- Opções independentes OFICIAIS e ÁREAS.
+- Botão “Trocar base/região”: importa um arquivo TXT de ruas/áreas e o JSON de oficiais da nova região; faz cópia de segurança da base anterior em bases_anteriores e limpa ajustes antigos para não misturar dados de regiões diferentes.
+- OFICIAIS permite alterar nomes e observações/períodos por listagem.
+- ÁREAS agora mostra as áreas realmente presentes na base original, e não a lista de ruas. Ao renomear uma área, o novo nome é aplicado aos registros que utilizam aquela área e passa a aparecer nas consultas seguintes.
+- A opção Sobre o programa explica a finalidade e o funcionamento offline.
+- Assinatura: Desenvolvido por ALEXANDRE RAMOS ZANARDI © 2026.
+- Corrigida a consulta de “Avenida Avenida Prefeito Dulcídio Cardoso, nº 1400 Bloco 1 Apt 1704”: retorna a listagem 15, oficial Roberta, conforme a regra de numeração cadastrada.
+- Consulta aprimorada para normalizar títulos antes/depois do nome (ex.: “Prefeito Dulcídio Cardoso” e “Dulcídio Cardoso, Prefeito”).
+- Exceções numéricas explícitas e listas separadas por “+” ou vírgulas agora são interpretadas e priorizadas sobre faixas gerais quando aplicável.
+- Testes de regressão executados com sucesso para limites, paridade e exceções das avenidas das Américas e Prefeito Dulcídio Cardoso.
+
+IMPORTANTE SOBRE OUTRAS REGIÕES:
+Para mudar a consulta para outra região, clique em “Trocar base/região” e selecione primeiro o TXT com os registros de ruas/áreas e depois o JSON dos oficiais da mesma região. O TXT deve usar o padrão “N° 1 | Nome da rua (regra de numeração, se houver) | ÁREA: Nome da área”. O JSON deve mapear cada número de listagem para um objeto com “nome” e, opcionalmente, “periodo”. O programa faz cópia de segurança dos arquivos ativos antes de substituir a base. Use dados da mesma região e confira alguns endereços após a importação. Trocar somente os nomes das áreas não cria vínculos entre ruas, áreas e oficiais.
+
+COMO ATUALIZAR NO WINDOWS:
+1. Feche o programa.
+2. Extraia este ZIP em uma pasta nova.
+3. Copie da pasta antiga os arquivos ajustes_locais.json e consultas_realizadas.csv, se existirem e desejar preservar alterações/histórico.
+4. Execute CRIAR_EXE_NO_WINDOWS.bat para gerar o executável atualizado.
+5. Abra o executável gerado em dist\ConsultaEnderecos\ConsultaEnderecos.exe.
+
+Os arquivos lista_ruas_original.txt e oficiais.json devem permanecer junto dos arquivos do programa, conforme o pacote. Não basta substituir o EXE antigo: é necessário recriá-lo pelo arquivo .bat.
+
+A assinatura identifica a autoria informada, mas não equivale a patente nem substitui eventual registro de programa de computador no INPI.
+
+CORREÇÃO DESTA VERSÃO — REGRAS PAR/ÍMPAR
+- O leitor da lista preserva as regras explícitas “(PAR)” e “(ÍMPAR)” no campo “Regra de numeração”.
+- A regra continua visível na tabela mesmo quando o endereço é consultado sem número e o programa precisa mostrar mais de uma opção.
+- Com número informado, a paridade é aplicada para filtrar as listagens: por exemplo, Avenida Armando Lombardi, 400 seleciona a listagem 6 (PAR), enquanto nº 401 seleciona a listagem 8 (ÍMPAR).
+- O teste automatizado `testar_programa.py` inclui esses três casos de regressão, além dos testes já existentes.
+
+
+CORREÇÃO DESTA VERSÃO — EXCEÇÕES DAS AVENIDAS
+- Os nomes das vias são comparados sem depender de o título “Prefeito” aparecer antes ou depois do nome.
+- Listas de endereços pontuais (por exemplo, 139, 271, 285, 301 e 315) e inclusões com “+” são mantidas como números específicos, sem juntá-los por engano.
+- Quando um número consta como exceção explícita de uma faixa maior, a consulta prioriza a regra específica.
+- O teste automatizado cobre as exceções e mudanças de faixa da Avenida das Américas e da Avenida Prefeito Dulcídio Cardoso.

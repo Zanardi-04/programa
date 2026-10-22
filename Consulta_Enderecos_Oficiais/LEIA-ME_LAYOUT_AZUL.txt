@@ -1,0 +1,29 @@
+CONSULTA DE ENDEREÇOS E OFICIAIS — LAYOUT AZUL
+
+Interface inspirada na referência enviada: cabeçalho com ilustração do Rio,
+painéis azuis, botões com ícones, destaque na consulta, contador de registros
+e mensagem quando a tabela está vazia. Não há botão "Ler mandado".
+
+As regras de consulta, a base original, o histórico, a exportação e as funções
+de áreas e oficiais foram preservados. O programa continua funcionando offline
+e a nova interface não exige a instalação de bibliotecas Python adicionais.
+
+COMO USAR NO WINDOWS
+1. Extraia o ZIP inteiro em uma pasta nova.
+2. Para preservar os seus ajustes e histórico, copie da pasta antiga os arquivos
+   ajustes_locais.json, areas.json e consultas_realizadas.csv, se existirem.
+   Se você usa uma base própria, preserve também o TXT e o JSON dessa base.
+3. Com Python 3.11 ou superior instalado, execute:
+   python consulta_enderecos.py
+4. Para gerar o executável, execute CRIAR_EXE_NO_WINDOWS.bat no Windows.
+   Depois, abra dist\ConsultaEnderecos\ConsultaEnderecos.exe.
+
+Um executável antigo não recebe o novo visual automaticamente: é necessário
+gerá-lo novamente. Mantenha os arquivos de dados e imagens junto do programa,
+conforme as instruções originais de LEIA-ME.txt.
+
+VALIDAÇÃO REALIZADA
+Os testes incluídos em testar_programa.py passaram com 1.491 registros.
+Também foram verificadas a interface, consultas, histórico CSV, exportação TXT
+e as janelas de oficiais, áreas e informações em um ambiente Linux com tela
+virtual. A geração do executável Windows não foi executada neste ambiente.
