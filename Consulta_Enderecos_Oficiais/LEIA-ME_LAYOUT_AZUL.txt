@@ -1,12 +1,21 @@
-CONSULTA DE ENDEREÇOS E OFICIAIS — LAYOUT AZUL
+CONSULTA DE ENDEREÇOS E OFICIAIS — LAYOUT AZUL REFINADO
 
-Interface inspirada na referência enviada: cabeçalho com ilustração do Rio,
-painéis azuis, botões com ícones, destaque na consulta, contador de registros
-e mensagem quando a tabela está vazia. Não há botão "Ler mandado".
+Interface inspirada na referência enviada: cabeçalho panorâmico do Rio,
+painéis e botões arredondados, ícones com bordas suaves, fontes maiores,
+contador de registros e mensagens para a tabela vazia. Os indicadores PRONTO,
+LOCALIZADO e CONFERIR distinguem os estados da consulta. Não há botão
+"Ler mandado".
+
+ATALHOS
+Enter no campo de endereço: consultar.
+Ctrl+L: ir ao campo de busca e selecionar o texto.
+Esc: limpar a consulta.
 
 As regras de consulta, a base original, o histórico, a exportação e as funções
 de áreas e oficiais foram preservados. O programa continua funcionando offline
 e a nova interface não exige a instalação de bibliotecas Python adicionais.
+Mantenha a pasta recursos junto do programa: ela contém o cabeçalho e os
+elementos visuais usados pela interface. O .bat copia essa pasta para o EXE.
 
 COMO USAR NO WINDOWS
 1. Extraia o ZIP inteiro em uma pasta nova.

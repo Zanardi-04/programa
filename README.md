@@ -1,14 +1,21 @@
 # Consulta de Endereços e Oficiais
 
 Aplicativo desktop offline em Python/Tkinter para consultar ruas, áreas e oficiais.
-Esta versão usa o layout azul inspirado na referência enviada, sem o botão
+Esta versão refina o layout azul inspirado na referência enviada, sem o botão
 “Ler mandado”. As regras de consulta e os arquivos de dados originais foram
 preservados.
+
+![Prévia da interface refinada](docs/previa-layout-v2.png)
+
+A versão 2 inclui um panorama do Rio, painéis e botões com bordas suaves,
+fontes mais legíveis e indicadores PRONTO, LOCALIZADO e CONFERIR. Atalhos:
+**Enter** para consultar, **Ctrl+L** para buscar e **Esc** para limpar.
+A pasta `recursos` contém as imagens locais, sem novas dependências de execução.
 
 ## Baixar para o Windows
 
 O pacote pronto para extração está em
-[distribuicao/Consulta_Enderecos_Layout_Azul.zip](distribuicao/Consulta_Enderecos_Layout_Azul.zip).
+[distribuicao/Consulta_Enderecos_Layout_Azul_v2.zip](distribuicao/Consulta_Enderecos_Layout_Azul_v2.zip).
 
 1. Abra esse arquivo no GitHub e clique em **Download raw file** (ícone de download).
 2. No Windows, clique com o botão direito no ZIP e escolha **Extrair Tudo**.
@@ -29,7 +36,7 @@ python consulta_enderecos.py
 ```
 
 Para gerar o `.exe`, execute `CRIAR_EXE_NO_WINDOWS.bat` **no Windows**. O resultado
-fica em `dist\ConsultaEnderecos\ConsultaEnderecos.exe`. Mantenha os arquivos de
+fica em `dist\ConsultaEnderecos\ConsultaEnderecos.exe`. Mantenha a pasta `recursos` e os arquivos de
 dados e imagens na pasta do programa, conforme o `LEIA-ME.txt` original.
 
 Antes de substituir uma instalação antiga, preserve seus ajustes, seu histórico
@@ -44,10 +51,13 @@ ser gerado no Windows; ele não está incluído neste pacote.
 
 ## Integridade do pacote
 
-Arquivo: `distribuicao/Consulta_Enderecos_Layout_Azul.zip` — 484.115 bytes.
+Arquivo: `distribuicao/Consulta_Enderecos_Layout_Azul_v2.zip` — 1.940.829 bytes.
 
 SHA-256:
 
 ```text
-de5178fc7a1ca845e1a7f44629f35ac8b3ad3f381a51529eefde62b139366e46
+fffddf3180880353102ec9dfbf454da467741a05dcaab02b2767530deb285432
 ```
+
+A primeira versão continua em `distribuicao/Consulta_Enderecos_Layout_Azul.zip`
+para quem precisar recuperar o pacote anterior.

@@ -34,6 +34,8 @@ copy /Y logo_mapa_documento.png dist\ConsultaEnderecos\ >nul
 if errorlevel 1 goto erro
 copy /Y logo_mapa_documento.ico dist\ConsultaEnderecos\ >nul
 if errorlevel 1 goto erro
+xcopy /E /I /Y recursos dist\ConsultaEnderecos\recursos >nul
+if errorlevel 1 goto erro
 echo.
 echo EXE criado com sucesso em:
 echo %CD%\dist\ConsultaEnderecos\ConsultaEnderecos.exe

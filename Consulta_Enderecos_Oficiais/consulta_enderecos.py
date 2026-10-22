@@ -430,13 +430,40 @@ def append_history(result):
 
 
 UI_FONT = "Segoe UI" if sys.platform == "win32" else "Arial"
+RESOURCE_DIR = os.path.join(BASE_DIR, "recursos")
 
 
 COLORS = {
     "background": "#06152b", "panel": "#0b2344", "input": "#102d53",
-    "border": "#1c4979", "text": "#f1f5ff", "muted": "#b0c4e4",
+    "border": "#244b77", "text": "#f1f5ff", "muted": "#b0c4e4",
     "blue": "#1673ff", "cyan": "#58cfff", "teal": "#00cbb8",
 }
+
+
+def ui_image(widget, filename):
+    """Load optional local artwork once; retain the native drawing fallback."""
+    root = widget.winfo_toplevel()
+    cache = getattr(root, "_ui_images", None)
+    if cache is None:
+        root._ui_images = cache = {}
+    if filename not in cache:
+        try:
+            cache[filename] = tk.PhotoImage(master=root, file=os.path.join(RESOURCE_DIR, filename), format="png")
+        except tk.TclError:
+            cache[filename] = None
+    return cache[filename]
+
+
+def stretched_skin(widget, source, width, height):
+    """Stretch only the middle of a local 48px skin, keeping corners crisp."""
+    if source is None or width < 26 or height != 48:
+        return None
+    image = tk.PhotoImage(master=widget, width=width, height=height)
+    image.tk.call(str(image), "copy", str(source), "-from", 0, 0, 12, 48, "-to", 0, 0)
+    image.tk.call(str(image), "copy", str(source), "-from", 36, 0, 37, 48,
+                  "-to", 12, 0, "-zoom", width-24, 1)
+    image.tk.call(str(image), "copy", str(source), "-from", 60, 0, 72, 48, "-to", width-12, 0)
+    return image
 
 
 def rounded_box(canvas, x1, y1, x2, y2, radius=12, **options):
@@ -450,6 +477,13 @@ def rounded_box(canvas, x1, y1, x2, y2, radius=12, **options):
 
 def draw_icon(canvas, name, x, y, size=24, color="#b9d6ff", tag="icon"):
     """Small vector icons, independent of fonts and third-party packages."""
+    # Exported at high resolution during development; no imaging package is
+    # required on the user's machine. Canvas vectors remain a safe fallback.
+    if isinstance(canvas, tk.Canvas):
+        image = ui_image(canvas, f"icone_{name}_{round(size)}_{color.lstrip('#')}.png")
+        if image is not None:
+            canvas.create_image(x, y, image=image, anchor="nw", tags=tag)
+            return
     scale = size/24
     def coords(points):
         return [v*scale + (x if i%2 == 0 else y) for i,v in enumerate(points)]
@@ -460,7 +494,11 @@ def draw_icon(canvas, name, x, y, size=24, color="#b9d6ff", tag="icon"):
         canvas.create_oval(*coords(points), outline=color, width=1.8*scale, tags=tag)
     def rectangle(*points):
         canvas.create_rectangle(*coords(points), outline=color, width=1.7*scale, tags=tag)
-    if name == "search":
+    if name == "check":
+        oval(2, 2, 22, 22); line(7, 12, 10, 15, 17, 8)
+    elif name == "warning":
+        line(12, 2, 23, 21, 1, 21, 12, 2); line(12, 8, 12, 13); oval(11.5, 17, 12.5, 18)
+    elif name == "search":
         oval(3, 3, 16, 16); line(15, 15, 22, 22)
     elif name == "clear":
         line(18, 2, 9, 13); line(7, 11, 15, 17, 10, 22, 2, 16, 7, 11)
@@ -505,6 +543,11 @@ class BluePanel(tk.Canvas):
         self.delete("surface")
         rounded_box(self, 1, 1, event.width-1, event.height-1, 16,
                     fill=COLORS["panel"], outline=COLORS["border"], tags="surface")
+        for suffix, x, y, anchor in (("tl", 0, 0, "nw"), ("tr", event.width, 0, "ne"),
+                                     ("bl", 0, event.height, "sw"), ("br", event.width, event.height, "se")):
+            corner = ui_image(self, f"painel_{suffix}.png")
+            if corner is not None:
+                self.create_image(x, y, image=corner, anchor=anchor, tags="surface")
         self.tag_lower("surface")
         self.itemconfigure(self._window, width=max(1, event.width-2*self.padding),
                            height=max(1, event.height-2*self.padding))
@@ -512,15 +555,21 @@ class BluePanel(tk.Canvas):
 
 class BlueButton(tk.Canvas):
     def __init__(self, parent, text, command, icon, width=160, kind="normal"):
-        super().__init__(parent, width=width, height=46, bd=0, highlightthickness=0,
+        super().__init__(parent, width=width, height=48, bd=0, highlightthickness=0,
                          bg=COLORS["panel"], cursor="hand2", takefocus=True)
         self.text, self.command, self.icon, self.kind = text, command, icon, kind
         self.hover = False
+        self.pressed = False
+        self._skin_key = None
+        self._skin = None
+        from tkinter import font as tkfont
+        self._font = tkfont.Font(root=self, family=UI_FONT, size=11, weight="bold")
         self.bind("<Configure>", lambda event: self._draw())
         self.bind("<Enter>", lambda event: self._set_hover(True))
         self.bind("<Leave>", lambda event: self._set_hover(False))
         self.bind("<FocusIn>", lambda event: self._draw())
         self.bind("<FocusOut>", lambda event: self._draw())
+        self.bind("<ButtonPress-1>", self._press)
         self.bind("<ButtonRelease-1>", self._click)
         self.bind("<Return>", self._activate)
         self.bind("<space>", self._activate)
@@ -533,9 +582,16 @@ class BlueButton(tk.Canvas):
         self.command()
         return "break"
 
+    def _press(self, event):
+        self.focus_set()
+        self.pressed = True
+        self._draw()
+
     def _click(self, event):
-        if 0 <= event.x < self.winfo_width() and 0 <= event.y < self.winfo_height():
-            self.focus_set()
+        activate = self.pressed and 0 <= event.x < self.winfo_width() and 0 <= event.y < self.winfo_height()
+        self.pressed = False
+        self._draw()
+        if activate:
             self.command()
 
     def _draw(self):
@@ -546,19 +602,56 @@ class BlueButton(tk.Canvas):
                     "export": ("#063d49", "#07515b", "#00cbb8")}
         base, hover, border = palettes[self.kind]
         focused = self.focus_get() == self
-        rounded_box(self, 1, 1, width-1, height-1, 9,
-                    fill=hover if self.hover else base,
-                    outline=COLORS["cyan"] if focused else border, width=1.5 if focused else 1)
-        self.create_line(12, 3, width-12, 3, fill=border)
+        state = "pressed" if self.pressed else "focus" if focused else "hover" if self.hover else "normal"
+        skin = ui_image(self, f"botao_{self.kind}_{state}.png")
+        key = (width, height, state)
+        if skin is not None and width >= 26 and height == 48:
+            if key != self._skin_key:
+                self._skin = stretched_skin(self, skin, width, height)
+                self._skin_key = key
+            self.create_image(0, 0, image=self._skin, anchor="nw")
+        else:
+            rounded_box(self, 1, 1, width-1, height-1, 10,
+                        fill=hover if self.hover else base,
+                        outline=COLORS["cyan"] if focused else border, width=1.5 if focused else 1)
         # Center the icon and text as one group, also when the window shrinks.
-        from tkinter import font as tkfont
-        font = tkfont.Font(family=UI_FONT, size=10, weight="bold")
+        font = self._font
+        font.configure(size=11)
         if font.measure(self.text)+58 > width:
+            font.configure(size=10)
+        if font.measure(self.text)+52 > width:
             font.configure(size=9)
         start = max(10, (width-font.measure(self.text)-36)/2)
-        draw_icon(self, self.icon, start, (height-21)/2, 21,
+        draw_icon(self, self.icon, start, (height-22)/2, 22,
                   "#73fff0" if self.kind == "export" else "#edf5ff")
         self.create_text(start+33, height/2, text=self.text, anchor="w", font=font, fill=COLORS["text"])
+
+
+class SearchSurface(tk.Canvas):
+    def __init__(self, parent):
+        super().__init__(parent, height=48, bd=0, highlightthickness=0, bg=COLORS["panel"])
+        self.focused = False
+        self._skin = None
+        self.body = tk.Frame(self, bg=COLORS["input"])
+        self._window = self.create_window(12, 2, window=self.body, anchor="nw")
+        self.bind("<Configure>", lambda event: self._draw())
+
+    def set_focus(self, focused):
+        self.focused = focused
+        self._draw()
+
+    def _draw(self):
+        width, height = self.winfo_width(), self.winfo_height()
+        self.delete("surface")
+        source = ui_image(self, "campo_focus.png" if self.focused else "campo_normal.png")
+        self._skin = stretched_skin(self, source, width, height)
+        if self._skin is not None:
+            self.create_image(0, 0, image=self._skin, anchor="nw", tags="surface")
+        else:
+            rounded_box(self, 1, 1, width-1, height-1, 9, fill=COLORS["input"],
+                        outline=COLORS["cyan"] if self.focused else "#6382ae", tags="surface")
+        self.tag_lower("surface")
+        self.itemconfigure(self._window, width=max(1, width-24), height=max(1, height-4))
 
 
 class App(tk.Tk):
@@ -579,6 +672,7 @@ class App(tk.Tk):
         except Exception as e:
             messagebox.showerror("Erro ao carregar arquivos",str(e)); self.destroy(); return
         self.last_result=None; self._build()
+        self.after(0, self._style_windows_titlebar)
         self.after(200,self.startup_check)
 
     def _configure_theme(self):
@@ -597,10 +691,10 @@ class App(tk.Tk):
         style.configure("TNotebook.Tab", background="#112d50", padding=(14, 8))
         style.map("TNotebook.Tab", background=[("selected", "#20518b")])
         style.configure("Treeview", background="#0a203d", fieldbackground="#0a203d",
-                        foreground=COLORS["text"], rowheight=38, borderwidth=0,
-                        font=(UI_FONT, 10))
+                        foreground=COLORS["text"], rowheight=42, borderwidth=0,
+                        font=(UI_FONT, 11))
         style.configure("Treeview.Heading", background="#14355d", foreground=COLORS["text"],
-                        font=(UI_FONT, 10, "bold"), padding=(14, 13), relief="flat")
+                        font=(UI_FONT, 11, "bold"), padding=(14, 13), relief="flat")
         style.map("Treeview.Heading", background=[("active", "#1b4375")])
         style.map("Treeview", background=[("selected", "#1759a0")],
                   foreground=[("selected", "#ffffff")])
@@ -621,42 +715,57 @@ class App(tk.Tk):
         canvas = self.header
         canvas.delete("all")
         width, height = event.width, event.height
-        # An original vector illustration of Rio; it stays sharp offline.
-        for row in range(height):
-            t = row/max(1, height-1)
-            rgb = tuple(round(a+(b-a)*t) for a,b in zip((14, 54, 105), (6, 21, 43)))
-            canvas.create_line(0, row, width, row, fill="#%02x%02x%02x" % rgb)
-        def landscape(points, fill, smooth=True):
-            canvas.create_polygon(*[v*(width if i%2 == 0 else height) for i,v in enumerate(points)],
-                                  fill=fill, outline="", smooth=smooth, splinesteps=20)
-        landscape((.44, 1, .48, .52, .54, .66, .60, .30, .67, .57, .74, .28,
-                   .82, .42, .91, .18, 1, .36, 1, 1), "#103c70")
-        landscape((.51, 1, .61, .68, .68, .84, .73, .58, .79, .77, .87, .42,
-                   .95, .67, 1, .53, 1, 1), "#0c2c55")
-        # Sugarloaf Mountain and the Corcovado silhouette.
-        landscape((.64, 1, .67, .76, .70, .62, .721, .20, .739, .18,
-                   .757, .63, .79, .83, .84, 1), "#092344")
-        landscape((.81, 1, .88, .71, .923, .52, .958, .74, 1, .86, 1, 1), "#071e3b")
-        cx, cy = width*.924, height*.34
-        ink = "#061b35"
-        canvas.create_oval(cx-4, cy-18, cx+4, cy-10, fill=ink, outline="")
-        canvas.create_polygon(cx-6, cy-9, cx-29, cy-12, cx-30, cy-7,
-                              cx-7, cy-1, cx-5, cy+25, cx+5, cy+25,
-                              cx+7, cy-1, cx+30, cy-7, cx+29, cy-12, cx+6, cy-9,
-                              fill=ink)
-        for i in range(56):
-            x = width*(.55+i*.008)
-            building = 4+(i*13 % 17)
-            canvas.create_rectangle(x, height-building, x+5, height, fill="#092746", outline="")
+        banner = ui_image(canvas, "rio_banner.png")
+        if banner is not None:
+            # Keep the original artwork on disk. Tk displays a smaller version
+            # with the landscape aligned right, leaving the title area quiet.
+            if not hasattr(self, "_banner_image"):
+                self._banner_image = banner.subsample(2)
+            image = self._banner_image
+            left = width-image.width()
+            offset = 12 if height < 150 else 0
+            top = (height-image.height())//2+offset
+            for row in range(height):
+                sample_y = max(0, min(image.height()-1, row-top))
+                color = "#%02x%02x%02x" % image.get(0, sample_y)
+                canvas.create_line(0, row, max(1, left+1), row, fill=color)
+            canvas.create_image(width, height/2+offset, image=image, anchor="e")
+        else:
+            for row in range(height):
+                t = row/max(1, height-1)
+                rgb = tuple(round(a+(b-a)*t) for a,b in zip((12, 41, 77), (6, 21, 43)))
+                canvas.create_line(0, row, width, row, fill="#%02x%02x%02x" % rgb)
         if self._logo_image:
-            canvas.create_image(32, height/2, image=self._logo_image, anchor="w")
-        canvas.create_line(161, 38, 161, height-36, fill="#406593")
-        title_size = 26 if width >= 1250 else 23 if width >= 1120 else 20
-        canvas.create_text(192, height/2-17, text=APP_TITLE, anchor="w",
+            canvas.create_image(30, height/2, image=self._logo_image, anchor="w")
+        canvas.create_line(158, height/2-42, 158, height/2+42, fill="#365779")
+        title_size = 27 if width >= 1250 else 24 if width >= 1120 else 21
+        canvas.create_text(189, height/2-47, text="CONSULTA LOCAL DE ENDEREÇOS", anchor="w",
+                           fill="#79b6ef", font=(UI_FONT, 9, "bold"))
+        canvas.create_text(187, height/2-10, text=APP_TITLE, anchor="w",
                            fill=COLORS["text"], font=(UI_FONT, title_size, "bold"))
-        canvas.create_text(193, height/2+27,
+        canvas.create_text(189, height/2+32,
                            text="Funciona offline  ·  Base de dados local  ·  Consulta rápida e confiável",
-                           anchor="w", fill=COLORS["muted"], font=(UI_FONT, 12))
+                           anchor="w", fill="#b7cde7", font=(UI_FONT, 11))
+
+    def _style_windows_titlebar(self):
+        if sys.platform != "win32":
+            return
+        try:
+            import ctypes
+            from ctypes import wintypes
+            user32 = ctypes.windll.user32
+            user32.GetParent.argtypes = [wintypes.HWND]
+            user32.GetParent.restype = wintypes.HWND
+            window = user32.GetParent(self.winfo_id())
+            dwm = ctypes.windll.dwmapi.DwmSetWindowAttribute
+            dwm.argtypes = [wintypes.HWND, wintypes.DWORD, ctypes.c_void_p, wintypes.DWORD]
+            # Unsupported attributes return an error on older Windows versions;
+            # the native title bar remains usable in that case.
+            for attribute, value in ((20, 1), (35, 0x002b1506), (36, 0x00fff5f1)):
+                setting = ctypes.c_int(value)
+                dwm(window, attribute, ctypes.byref(setting), ctypes.sizeof(setting))
+        except (OSError, AttributeError, tk.TclError):
+            pass
 
     def _build(self):
         self._configure_theme()
@@ -684,13 +793,13 @@ class App(tk.Tk):
                 self.iconphoto(True, self._logo_image)
             except tk.TclError:
                 self._logo_image = None
-        self.header = tk.Canvas(self, height=156, bg=COLORS["background"],
+        self.header = tk.Canvas(self, height=168, bg=COLORS["background"],
                                 bd=0, highlightthickness=0)
         self.header.grid(row=0, column=0, sticky="ew")
         self.header.bind("<Configure>", self._draw_header)
         def resize_window(event):
             if event.widget == self:
-                self.header.configure(height=132 if event.height < 820 else 156)
+                self.header.configure(height=128 if event.height < 820 else 168)
         self.bind("<Configure>", resize_window)
 
         search_panel = BluePanel(self, height=120, padding=20)
@@ -698,27 +807,32 @@ class App(tk.Tk):
         search = search_panel.body
         search.grid_columnconfigure(0, weight=1)
         tk.Label(search, text="Endereço completo", bg=COLORS["panel"], fg=COLORS["text"],
-                 font=(UI_FONT, 11, "bold")).grid(row=0, column=0, sticky="w", pady=(0, 8))
+                 font=(UI_FONT, 12, "bold")).grid(row=0, column=0, sticky="w", pady=(0, 8))
+        tk.Label(search, text="Enter para consultar   ·   Ctrl+L para buscar", bg=COLORS["panel"],
+                 fg="#8faed3", font=(UI_FONT, 9)).grid(row=0, column=0, sticky="e", pady=(0, 8))
         search_row = tk.Frame(search, bg=COLORS["panel"])
         search_row.grid(row=1, column=0, sticky="ew")
         search_row.grid_columnconfigure(0, weight=1)
-        self.search_field = tk.Frame(search_row, bg=COLORS["input"], highlightthickness=1,
-                                     highlightbackground="#6382ae", height=46)
-        self.search_field.grid(row=0, column=0, sticky="nsew", padx=(0, 14))
+        self.search_surface = SearchSurface(search_row)
+        self.search_surface.grid(row=0, column=0, sticky="nsew", padx=(0, 14))
+        self.search_field = self.search_surface.body
         self.search_field.grid_columnconfigure(1, weight=1)
-        search_icon = tk.Canvas(self.search_field, width=44, height=42, bg=COLORS["input"],
+        search_icon = tk.Canvas(self.search_field, width=34, height=44, bg=COLORS["input"],
                                 bd=0, highlightthickness=0)
         search_icon.grid(row=0, column=0)
-        draw_icon(search_icon, "search", 13, 11, 21)
+        draw_icon(search_icon, "search", 2, 11, 22, "#9eb7da")
         self.query = tk.StringVar()
         self.entry = tk.Entry(self.search_field, textvariable=self.query, bg=COLORS["input"],
                               fg=COLORS["text"], insertbackground="#ffffff", selectbackground="#216bd0",
                               relief="flat", bd=0, highlightthickness=0, font=(UI_FONT, 12))
         self.entry.grid(row=0, column=1, sticky="ew", padx=(2, 14))
         self.entry.bind("<Return>", lambda event: self.do_lookup())
+        self.bind("<Control-l>", self._focus_search)
+        self.bind("<Control-L>", self._focus_search)
+        self.bind("<Escape>", lambda event: self.clear())
         self.placeholder = tk.Label(self.search_field, text="Digite o endereço completo para consultar...",
                                     bg=COLORS["input"], fg="#9eb7da", font=(UI_FONT, 11), cursor="xterm")
-        self.placeholder.place(x=47, rely=.5, anchor="w")
+        self.placeholder.place(x=36, rely=.5, anchor="w")
         self.placeholder.bind("<Button-1>", lambda event: self.entry.focus_set())
         self.entry.bind("<FocusIn>", self._search_focus)
         self.entry.bind("<FocusOut>", self._search_focus)
@@ -728,21 +842,24 @@ class App(tk.Tk):
         self.clear_button = BlueButton(search_row, "Limpar", self.clear, "clear", width=134)
         self.clear_button.grid(row=0, column=2, sticky="ns")
 
-        status_panel = BluePanel(self, height=88, padding=16)
+        status_panel = BluePanel(self, height=94, padding=16)
         status_panel.grid(row=2, column=0, sticky="ew", padx=24, pady=(0, 14))
         status_body = status_panel.body
         status_body.grid_columnconfigure(2, weight=1)
-        info = tk.Canvas(status_body, width=50, height=50, bg=COLORS["panel"], bd=0, highlightthickness=0)
-        info.grid(row=0, column=0, rowspan=2, padx=(0, 12))
-        draw_icon(info, "info", 8, 9, 32, "#68a3ff")
+        self.status_icon = tk.Canvas(status_body, width=50, height=50, bg=COLORS["panel"], bd=0, highlightthickness=0)
+        self.status_icon.grid(row=0, column=0, rowspan=2, padx=(0, 12))
+        draw_icon(self.status_icon, "info", 8, 9, 32, "#68a3ff")
         tk.Frame(status_body, bg="#2b5687", width=1).grid(row=0, column=1, rowspan=2, sticky="ns", padx=(0, 16))
         self.status = tk.Label(status_body, text="Pronto para consultar.", bg=COLORS["panel"],
-                               fg=COLORS["text"], font=(UI_FONT, 10, "bold"), anchor="w")
+                               fg=COLORS["text"], font=(UI_FONT, 11, "bold"), anchor="w")
         self.status.grid(row=0, column=2, sticky="ew", pady=(1, 2))
         self.note = tk.Text(status_body, height=2, bg=COLORS["panel"], fg=COLORS["muted"],
-                            relief="flat", bd=0, highlightthickness=0, wrap="word", font=(UI_FONT, 9),
+                            relief="flat", bd=0, highlightthickness=0, wrap="word", font=(UI_FONT, 10),
                             padx=0, pady=0, cursor="arrow", takefocus=False)
-        self.note.grid(row=1, column=2, sticky="ew")
+        self.note.grid(row=1, column=2, sticky="ew", columnspan=2)
+        self.status_badge = tk.Label(status_body, text="PRONTO", bg="#12375e", fg="#8ac3ff",
+                                     font=(UI_FONT, 9, "bold"), padx=12, pady=5)
+        self.status_badge.grid(row=0, column=3, sticky="e", padx=(12, 0))
         self.set_note("Digite um endereço e clique em Consultar.")
 
         results_panel = BluePanel(self, height=320, padding=16)
@@ -754,7 +871,7 @@ class App(tk.Tk):
         heading.grid(row=0, column=0, sticky="ew", pady=(0, 12))
         list_icon = tk.Canvas(heading, width=36, height=30, bg=COLORS["panel"], bd=0, highlightthickness=0)
         list_icon.pack(side="left", padx=(4, 10))
-        draw_icon(list_icon, "list", 3, 3, 25, "#589eff")
+        draw_icon(list_icon, "list", 3, 3, 24, "#589eff")
         tk.Label(heading, text="Correspondências encontradas", bg=COLORS["panel"], fg=COLORS["text"],
                  font=(UI_FONT, 13, "bold")).pack(side="left")
         self.result_count = tk.StringVar(value="0 registros")
@@ -768,7 +885,7 @@ class App(tk.Tk):
         labels = {"listing":"Listagem", "street":"Rua/registro", "area":"Bairro / Área",
                   "official":"Oficial", "period":"Período/nota", "rule":"Regra de numeração"}
         widths = {"listing":100, "street":250, "area":220, "official":170, "period":160, "rule":230}
-        minimums = {"listing":100, "street":170, "area":170, "official":120, "period":130, "rule":190}
+        minimums = {"listing":110, "street":170, "area":170, "official":120, "period":130, "rule":190}
         self.tree = ttk.Treeview(table, columns=cols, show="headings", height=6)
         for col in cols:
             self.tree.heading(col, text=labels[col], anchor="w")
@@ -791,17 +908,18 @@ class App(tk.Tk):
         self.empty_state = tk.Frame(table, bg="#0a203d")
         empty_content = tk.Frame(self.empty_state, bg="#0a203d")
         empty_content.place(relx=.5, rely=.5, anchor="center")
-        empty_icon = tk.Canvas(empty_content, width=78, height=64, bg="#0a203d", bd=0, highlightthickness=0)
+        empty_icon = tk.Canvas(empty_content, width=84, height=80, bg="#0a203d", bd=0, highlightthickness=0)
         empty_icon.pack(pady=(0, 12))
-        draw_icon(empty_icon, "empty", 4, 1, 53, "#507eb8")
-        empty_title = tk.Label(empty_content, text="Nenhum resultado para exibir.", bg="#0a203d", fg="#c6d8f5",
-                               font=(UI_FONT, 12))
+        draw_icon(empty_icon, "empty", 2, 1, 64, "#507eb8")
+        self.empty_title = empty_title = tk.Label(empty_content, text="Nenhum resultado para exibir.", bg="#0a203d", fg="#c6d8f5",
+                               font=(UI_FONT, 13, "bold"))
         empty_title.pack()
-        tk.Label(empty_content, text="Realize uma consulta para mostrar as correspondências.",
-                 bg="#0a203d", fg=COLORS["muted"], font=(UI_FONT, 10)).pack(pady=(8, 0))
+        self.empty_hint = tk.Label(empty_content, text="Realize uma consulta para mostrar as correspondências.",
+                                   bg="#0a203d", fg=COLORS["muted"], font=(UI_FONT, 10))
+        self.empty_hint.pack(pady=(8, 0))
         self._position_empty()
 
-        footer_panel = BluePanel(self, height=132, padding=20)
+        footer_panel = BluePanel(self, height=124, padding=20)
         footer_panel.grid(row=4, column=0, sticky="ew", padx=24, pady=(0, 18))
         footer = footer_panel.body
         footer.grid_columnconfigure(0, weight=1)
@@ -822,22 +940,24 @@ class App(tk.Tk):
             self.action_buttons.append(button)
         hint = tk.Frame(footer, bg=COLORS["panel"])
         hint.grid(row=1, column=0, sticky="ew", pady=(12, 0))
-        hint_icon = tk.Canvas(hint, width=30, height=36, bg=COLORS["panel"], bd=0, highlightthickness=0)
+        hint_icon = tk.Canvas(hint, width=30, height=24, bg=COLORS["panel"], bd=0, highlightthickness=0)
         hint_icon.pack(side="left", padx=(0, 12))
-        draw_icon(hint_icon, "database", 2, 5, 23, "#8ca8ce")
-        tk.Label(hint, text="Cada consulta é registrada automaticamente no relatório local.\nAo terminar, clique em Exportar relatório. Confirme os casos sinalizados na lista original.",
-                 bg=COLORS["panel"], fg=COLORS["muted"], justify="left", font=(UI_FONT, 9)).pack(side="left")
+        draw_icon(hint_icon, "database", 2, 1, 22, "#8ca8ce")
+        hint_text = tk.Label(hint, text="Consultas salvas no relatório local. Confirme na lista original os casos sinalizados.",
+                             bg=COLORS["panel"], fg=COLORS["muted"], justify="left", font=(UI_FONT, 9))
+        hint_text.pack(side="left")
         self.signature = tk.Label(hint, text="Desenvolvido por ALEXANDRE RAMOS ZANARDI © 2026",
                                   bg=COLORS["panel"], fg="#9db5d8", font=(UI_FONT, 8))
         self.signature.pack(side="right", anchor="s")
         # Keep the attribution visible on smaller monitors, without crowding help text.
         def resize_footer(event):
-            if event.width < 1200:
-                footer_panel.configure(height=158)
+            needed = hint_text.winfo_reqwidth()+self.signature.winfo_reqwidth()+64
+            if event.width < needed:
+                footer_panel.configure(height=146)
                 self.signature.pack_forget()
                 self.signature_small.grid()
             else:
-                footer_panel.configure(height=132)
+                footer_panel.configure(height=124)
                 self.signature.pack(side="right", anchor="s")
                 self.signature_small.grid_remove()
         self.signature_small = tk.Label(footer, text="Desenvolvido por ALEXANDRE RAMOS ZANARDI © 2026",
@@ -847,22 +967,27 @@ class App(tk.Tk):
         footer.bind("<Configure>", resize_footer)
 
         def resize_empty(event):
-            if event.height < 180:
+            if event.height < 200:
                 empty_icon.pack_forget()
             elif not empty_icon.winfo_manager():
                 empty_icon.pack(before=empty_title, pady=(0, 12))
         self.empty_state.bind("<Configure>", resize_empty)
         self.tree.bind("<Configure>", lambda event: self._position_empty() if not self.tree.get_children() else None)
 
+    def _focus_search(self, event=None):
+        self.entry.focus_set()
+        self.entry.selection_range(0, "end")
+        return "break"
+
     def _search_focus(self, event):
-        self.search_field.configure(highlightbackground=COLORS["cyan"] if event.type == tk.EventType.FocusIn else "#6382ae")
+        self.search_surface.set_focus(event.type == tk.EventType.FocusIn)
         self._update_placeholder()
 
     def _update_placeholder(self):
         if self.query.get() or self.focus_get() == self.entry:
             self.placeholder.place_forget()
         else:
-            self.placeholder.place(x=47, rely=.5, anchor="w")
+            self.placeholder.place(x=36, rely=.5, anchor="w")
 
     def _refresh_results(self):
         count = len(self.tree.get_children())
@@ -870,7 +995,20 @@ class App(tk.Tk):
         if count:
             self.empty_state.place_forget()
         else:
+            self.empty_title.configure(text="Nenhuma correspondência encontrada." if self.last_result else "Nenhum resultado para exibir.")
+            self.empty_hint.configure(text="Revise o nome da rua ou tente outro endereço." if self.last_result else
+                                      "Realize uma consulta para mostrar as correspondências.")
             self._position_empty()
+        status = self.last_result["status"] if self.last_result else ""
+        if not status:
+            icon, color, text, background = "info", "#68a3ff", "PRONTO", "#12375e"
+        elif status == "Localizado":
+            icon, color, text, background = "check", "#40d6b0", "LOCALIZADO", "#0b3a3e"
+        else:
+            icon, color, text, background = "warning", "#ffc56b", "CONFERIR", "#42321f"
+        self.status_icon.delete("all")
+        draw_icon(self.status_icon, icon, 8, 9, 32, color)
+        self.status_badge.configure(text=text, fg=color, bg=background)
 
     def _position_empty(self):
         heading_height = 48
@@ -1016,8 +1154,8 @@ class App(tk.Tk):
                 self.officials = json.load(f)
             for item in self.tree.get_children():
                 self.tree.delete(item)
-            self._refresh_results()
             self.last_result = None
+            self._refresh_results()
             self.status.configure(text=f"Nova base carregada: {len(self.records)} registros disponíveis.")
             self.set_note("A consulta agora utiliza a nova base importada.")
             messagebox.showinfo("Base atualizada",
