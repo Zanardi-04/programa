@@ -654,6 +654,79 @@ class SearchSurface(tk.Canvas):
         self.itemconfigure(self._window, width=max(1, width-24), height=max(1, height-4))
 
 
+class WrappedResults(tk.Canvas):
+    """Tabela com células multilinha e altura ajustada ao texto completo."""
+    def __init__(self, master, labels):
+        super().__init__(master, bg="#0a203d", highlightthickness=0, takefocus=True)
+        self.labels = labels
+        self.rows = {}
+        self.serial = 0
+        self.bind("<Configure>", lambda event: self.redraw())
+        self.bind("<MouseWheel>", self._wheel)
+        self.bind("<Button-4>", lambda event: self.yview_scroll(-1, "units"))
+        self.bind("<Button-5>", lambda event: self.yview_scroll(1, "units"))
+        self.bind("<Down>", lambda event: self.yview_scroll(1, "units"))
+        self.bind("<Up>", lambda event: self.yview_scroll(-1, "units"))
+        self.bind("<Next>", lambda event: self.yview_scroll(1, "pages"))
+        self.bind("<Prior>", lambda event: self.yview_scroll(-1, "pages"))
+        self.bind("<Button-1>", lambda event: self.focus_set())
+
+    def _wheel(self, event):
+        self.yview_scroll(-1 if event.delta > 0 else 1, "units")
+        return "break"
+
+    def get_children(self):
+        return tuple(self.rows)
+
+    def insert(self, parent, index, values, tags=()):
+        self.serial += 1
+        key = str(self.serial)
+        self.rows[key] = values
+        self._schedule_redraw()
+        return key
+
+    def delete(self, *items):
+        for item in items:
+            self.rows.pop(item, None)
+        self._schedule_redraw()
+
+    def _schedule_redraw(self):
+        if not getattr(self, "_redraw_pending", False):
+            self._redraw_pending = True
+            self.after_idle(self.redraw)
+
+    def identify_region(self, x, y):
+        return "heading" if y < getattr(self, "heading_height", 48) else "cell"
+
+    def redraw(self):
+        self._redraw_pending = False
+        tk.Canvas.delete(self, "all")
+        width = max(1, self.winfo_width())
+        weights = (9, 20, 19, 17, 15, 20)
+        widths = [int(width * weight / 100) for weight in weights]
+        widths[-1] = width - sum(widths[:-1])
+        y = 0
+        for row_index, values in enumerate([tuple(self.labels.values()), *self.rows.values()]):
+            color = "#173960" if row_index == 0 else ("#0c2547" if row_index % 2 else "#102e50")
+            background = self.create_rectangle(0, y, width, y + 1, fill=color, outline="")
+            x = 0
+            bottom = y + 42
+            for value, cell_width in zip(values, widths):
+                item = self.create_text(x + 8, y + 12, text=str(value),
+                                        width=max(1, cell_width - 16), anchor="nw",
+                                        fill=COLORS["text"],
+                                        font=(UI_FONT, 10, "bold") if row_index == 0 else (UI_FONT, 10))
+                bounds = self.bbox(item)
+                if bounds:
+                    bottom = max(bottom, bounds[3] + 12)
+                x += cell_width
+            self.coords(background, 0, y, width, bottom)
+            if row_index == 0:
+                self.heading_height = bottom
+            y = bottom
+        self.configure(scrollregion=(0, 0, width, y), yscrollincrement=24)
+
+
 class App(tk.Tk):
     def __init__(self):
         super().__init__(); self.title(APP_TITLE)
@@ -884,27 +957,11 @@ class App(tk.Tk):
         cols = ("listing", "street", "area", "official", "period", "rule")
         labels = {"listing":"Listagem", "street":"Rua/registro", "area":"Bairro / Área",
                   "official":"Oficial", "period":"Período/nota", "rule":"Regra de numeração"}
-        widths = {"listing":100, "street":250, "area":220, "official":170, "period":160, "rule":230}
-        minimums = {"listing":110, "street":170, "area":170, "official":120, "period":130, "rule":190}
-        self.tree = ttk.Treeview(table, columns=cols, show="headings", height=6)
-        for col in cols:
-            self.tree.heading(col, text=labels[col], anchor="w")
-            self.tree.column(col, width=widths[col], minwidth=minimums[col], stretch=True, anchor="w")
-        self.tree.tag_configure("even", background="#0c2547")
-        self.tree.tag_configure("odd", background="#102e50")
+        self.tree = WrappedResults(table, labels)
         y = ttk.Scrollbar(table, orient="vertical", command=self.tree.yview)
-        x = ttk.Scrollbar(table, orient="horizontal", command=self.tree.xview)
-        def update_scrollbar(scrollbar, first, last):
-            scrollbar.set(first, last)
-            if float(first) <= 0 and float(last) >= 1:
-                scrollbar.grid_remove()
-            else:
-                scrollbar.grid()
-        self.tree.configure(yscrollcommand=lambda first, last: update_scrollbar(y, first, last),
-                            xscrollcommand=lambda first, last: update_scrollbar(x, first, last))
+        self.tree.configure(yscrollcommand=y.set)
         self.tree.grid(row=0, column=0, sticky="nsew")
         y.grid(row=0, column=1, sticky="ns")
-        x.grid(row=1, column=0, sticky="ew")
         self.empty_state = tk.Frame(table, bg="#0a203d")
         empty_content = tk.Frame(self.empty_state, bg="#0a203d")
         empty_content.place(relx=.5, rely=.5, anchor="center")
@@ -972,7 +1029,7 @@ class App(tk.Tk):
             elif not empty_icon.winfo_manager():
                 empty_icon.pack(before=empty_title, pady=(0, 12))
         self.empty_state.bind("<Configure>", resize_empty)
-        self.tree.bind("<Configure>", lambda event: self._position_empty() if not self.tree.get_children() else None)
+        self.tree.bind("<Configure>", lambda event: self._position_empty() if not self.tree.get_children() else None, add="+")
 
     def _focus_search(self, event=None):
         self.entry.focus_set()
@@ -1168,11 +1225,23 @@ class App(tk.Tk):
     def edit_officials(self):
         """Tela independente para manter os nomes e observações dos oficiais."""
         win=tk.Toplevel(self); win.title("OFICIAIS"); win.geometry("760x520"); win.transient(self)
-        ttk.Label(win,text="Cadastre ou atualize o nome e o período/observação de cada oficial.").pack(anchor="w",padx=12,pady=(12,8))
-        cols=("listing","official","period"); tree=ttk.Treeview(win,columns=cols,show="headings",height=16)
+        win.minsize(540, 300)
+        win.grid_columnconfigure(0, weight=1)
+        win.grid_rowconfigure(1, weight=1)
+        ttk.Label(win,text="Cadastre ou atualize o nome e o período/observação de cada oficial.", wraplength=500).grid(row=0,column=0,sticky="w",padx=12,pady=(12,8))
+        table = ttk.Frame(win)
+        table.grid(row=1,column=0,sticky="nsew",padx=12)
+        table.grid_columnconfigure(0,weight=1)
+        table.grid_rowconfigure(0,weight=1)
+        cols=("listing","official","period"); tree=ttk.Treeview(table,columns=cols,show="headings",height=6)
         for c,label,w in (("listing","Listagem",90),("official","Oficial",250),("period","Período / observação",320)):
             tree.heading(c,text=label); tree.column(c,width=w)
-        tree.pack(fill="both",expand=True,padx=12)
+        tree.grid(row=0,column=0,sticky="nsew")
+        vertical=ttk.Scrollbar(table,orient="vertical",command=tree.yview)
+        vertical.grid(row=0,column=1,sticky="ns")
+        horizontal=ttk.Scrollbar(table,orient="horizontal",command=tree.xview)
+        horizontal.grid(row=1,column=0,sticky="ew")
+        tree.configure(yscrollcommand=vertical.set,xscrollcommand=horizontal.set)
         adj=load_adjustments().get("oficiais",{})
         for key in sorted(set(self.officials)|set(adj),key=lambda x:(not x.isdigit(),int(x) if x.isdigit() else x)):
             base=self.officials.get(str(key),{}); override=adj.get(str(key),{})
@@ -1195,7 +1264,9 @@ class App(tk.Tk):
                 else: current["oficiais"].pop(str(key),None)
             save_adjustments(current); self.adjustments=current
             messagebox.showinfo("OFICIAIS","Dados dos oficiais salvos.",parent=win); win.destroy()
-        controls=ttk.Frame(win); controls.pack(fill="x",padx=12,pady=10)
+        tree.bind("<Double-1>",lambda event: edit_selected())
+        tree.bind("<Return>",lambda event: edit_selected())
+        controls=ttk.Frame(win); controls.grid(row=2,column=0,sticky="ew",padx=12,pady=10)
         ttk.Button(controls,text="Editar selecionado",command=edit_selected).pack(side="left")
         ttk.Button(controls,text="Salvar alterações",command=save).pack(side="right")
 
