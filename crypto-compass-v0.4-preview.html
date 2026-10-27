@@ -82,7 +82,7 @@ footer{padding-top:27px;color:var(--muted);font-size:11px;text-align:center}a{co
 <div class="stat"><span>Acerto antes dos custos</span><strong id="winGross">—</strong></div>
 <div class="stat"><span>Resultado líquido</span><strong id="netR">—</strong></div>
 </div>
-<div class="note spaced" id="verdict">—</div>
+<div class="note spaced" id="verdict">—</div><p class="muted small">R significa uma unidade de risco planejado, não dólares. Ex.: +1 R equivale a ganhar o valor arriscado em uma operação; −1 R equivale a perdê-lo. Não são resultados reais.</p>
 <div class="kv"><span>Resultado nos 30% mais recentes</span><strong id="validation">—</strong></div>
 <div class="kv"><span>Maior queda acumulada</span><strong id="drawdown">—</strong></div>
 <div class="kv"><span>Lucro bruto das operações vencedoras / perdas</span><strong id="profitFactor">—</strong></div>
@@ -110,7 +110,7 @@ footer{padding-top:27px;color:var(--muted);font-size:11px;text-align:center}a{co
 'use strict';
 const $=id=>document.getElementById(id);
 const ms=60000;
-let current=[],asset='XRPUSDT',socket=null,timer=null,request=null,dataAt=0,chosenDays=7,testing=false,historyAbort=null,widgetLoaded=false,series=null;
+let current=[],asset='XRPUSDT',socket=null,timer=null,request=null,dataAt=0,chosenDays=7,testing=false,historyAbort=null,widgetLoaded=false;const historyCache=new Map();
 const money=n=>Number.isFinite(n)?'$ '+n.toLocaleString('en-US',{minimumFractionDigits:n<5?4:2,maximumFractionDigits:n<5?5:2}):'—';
 const num=n=>Number(n).toLocaleString('pt-BR',{maximumFractionDigits:2});
 const pct=n=>Number.isFinite(n)?num(n*100)+'%':'—';
@@ -184,7 +184,7 @@ wrap.appendChild(script);$('tvlink').href='https://www.tradingview.com/chart/?sy
 }
 function updateTV(){widgetLoaded=false;if($('chartToggle').open)showTV();else $('tv').innerHTML='<p class="tvmsg">Abra esta seção para carregar o gráfico.</p>'}
 function replay(c,s,days){const ind=indicator(c),tr=[],cut=c.at(-1).t-days*86400000;let skipped=0,next=62;
-for(let i=62;i<c.length-1;i++){if(c[i].t<cut||i<next)continue;const a=atSignal(c,ind,i,s);if(a.side==='WAIT'){if(a.why.startsWith('Custos estimados'))skipped++;continue}
+for(let i=62;i<c.length-13;i++){if(c[i].t<cut||i<next)continue;const a=atSignal(c,ind,i,s);if(a.side==='WAIT'){if(a.why.startsWith('Custos estimados'))skipped++;continue}
 const entry=c[i+1].o,dist=a.stopDist,sgn=a.side==='LONG'?1:-1,stop=entry-sgn*dist,target=entry+sgn*1.8*dist;
 if(entry<=0||stop<=0||target<=0)continue;
 let out=c[Math.min(i+12,c.length-1)].c,lastIndex=Math.min(i+12,c.length-1),why='Tempo';
@@ -205,9 +205,9 @@ const sorted=[...clean.values()].sort((a,b)=>a.t-b.t);return sorted}
 async function testHistory(){if(testing)return;const s=settings();if(!validSettings(s)){$('testMessage').textContent='Confira capital, risco, alavancagem e taxas em Avançado.';return}
 testing=true;const sym=asset,days=chosenDays;$('results').hidden=true;$('test').disabled=true;$('progress').hidden=false;$('bar').style.width='0%';
 historyAbort=new AbortController();const controller=historyAbort;
-try{$('testMessage').textContent='Baixando candles fechados… Pode demorar, especialmente em 30 dias.';const c=await history(days,sym,controller.signal,f=>{$('bar').style.width=Math.round(f*100)+'%';$('testMessage').textContent='Baixando histórico… '+Math.round(f*100)+'%'});
+try{$('testMessage').textContent='Baixando candles fechados… Pode demorar, especialmente em 30 dias.';const key=sym+'_'+days,cached=historyCache.get(key),c=cached&&Date.now()-cached.when<120000?cached.bars:await history(days,sym,controller.signal,f=>{$('bar').style.width=Math.round(f*100)+'%';$('testMessage').textContent='Baixando histórico… '+Math.round(f*100)+'%'});if(!cached||Date.now()-cached.when>=120000){historyCache.set(key,{bars:c,when:Date.now()});if(historyCache.size>3)historyCache.delete(historyCache.keys().next().value)}
 if(sym!==asset){$('testMessage').textContent='A moeda mudou. Faça um novo teste.';return}
-if(c.length<days*800){$('testMessage').textContent='Histórico incompleto ('+num(c.length)+' candles). Não vou apresentar um resultado que pareça representar '+days+' dia(s). Tente um período menor.';return}
+if(c.length<days*1365){$('testMessage').textContent='Histórico incompleto ('+num(c.length)+' candles). Não vou apresentar um resultado que pareça representar '+days+' dia(s). Tente um período menor.';return}
 let gaps=0;for(let i=1;i<c.length;i++)if(c[i].t-c[i-1].t!==60000)gaps++;if(gaps>5){$('testMessage').textContent='Histórico contém '+gaps+' intervalos sem candles. Replay suspenso para evitar conclusões enganosas.';return}
 $('testMessage').textContent='Calculando as operações…';await wait(30);
 const result=replay(c,s,days),all=stats(result.tr),split=c.at(-1).t-days*86400000*.3, recent=stats(result.tr.filter(x=>x.t>=split));
@@ -223,7 +223,7 @@ $('results').hidden=false;$('bar').style.width='100%';$('testMessage').textConte
 finally{testing=false;$('test').disabled=false;$('progress').hidden=true;historyAbort=null}
 }
 $('refresh').addEventListener('click',refresh);
-$('asset').addEventListener('change',()=>{asset=$('asset').value;if(historyAbort)historyAbort.abort();updateTV();current=[];waiting('Mudando a moeda…');refresh()});
+$('asset').addEventListener('change',()=>{asset=$('asset').value;if(historyAbort)historyAbort.abort();updateTV();current=[];$('price').textContent='—';$('trend').textContent='—';$('volume').textContent='—';waiting('Mudando a moeda…');refresh()});
 $('periods').addEventListener('click',e=>{const btn=e.target.closest('[data-days]');if(!btn||testing)return;chosenDays=Number(btn.dataset.days);for(const b of $('periods').querySelectorAll('button'))b.classList.toggle('selected',b===btn)});
 $('test').addEventListener('click',testHistory);
 $('chartToggle').addEventListener('toggle',()=>{if($('chartToggle').open)showTV()});
