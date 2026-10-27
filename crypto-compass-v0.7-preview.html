@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#091120">
-<title>Crypto Compass v0.7 · Estratégia adaptativa</title>
+<title>Crypto Compass v0.7.1 · Estratégia adaptativa</title>
 <style>
 :root{color-scheme:dark;--bg:#08101e;--panel:#101e32;--muted:#a5b4c8;--edge:#273951;--ink:#f0f6ff;--green:#48e0ac;--red:#ff8599;--yellow:#ffd17d;--blue:#7ebdff}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top right,#162e4d 0,transparent 42%),var(--bg);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -35,7 +35,7 @@ footer{padding-top:27px;color:var(--muted);font-size:11px;text-align:center}a{co
 
 .tiny{font-size:11px;color:var(--muted)}.risknote{color:var(--yellow)}.cols2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.method{padding:12px}.method b{font-size:13px}.method .detail{font-size:11px;line-height:1.35}.stat strong{overflow-wrap:anywhere}
 @media(max-width:400px){.cols2{grid-template-columns:1fr}}</style></head><body><main>
-<header><div class="brand"><span class="mark">◈</span><div><strong>Crypto Compass</strong><small>Estratégia adaptativa · Perpétuos</small></div></div><span class="pill">v0.7 · EXPERIMENTAL</span></header>
+<header><div class="brand"><span class="mark">◈</span><div><strong>Crypto Compass</strong><small>Estratégia adaptativa · Perpétuos</small></div></div><span class="pill">v0.7.1 · TESTE</span></header>
 <h1>Análise de contexto, oportunidade e entrada.</h1>
 <p class="muted">Cinco métodos, três tempos gráficos e gerenciamento dinâmico de risco. Não é um robô de execução nem há promessa de lucro.</p>
 <div class="toolbar">
@@ -65,8 +65,10 @@ footer{padding-top:27px;color:var(--muted);font-size:11px;text-align:center}a{co
 <div class="metric"><small>Alvo dinâmico</small><strong id="targetPlan">—</strong></div></div>
 <div class="kv"><span>Perda no stop, custos incluídos</span><strong id="lossPlan" class="red">—</strong></div>
 <div class="kv"><span>Ganho no alvo, custos incluídos</span><strong id="gainPlan" class="green">—</strong></div>
-<div class="kv"><span>Relação lucro/perda líquida prevista</span><strong id="ratioPlan">—</strong></div></div>
-<p class="tiny risknote">Entrada apenas demonstrativa. O preço real de execução, liquidação, funding e deslizamentos extremos não são previstos. O programa não envia ordens.</p>
+<div class="kv"><span>Relação lucro/perda líquida prevista</span><strong id="ratioPlan">—</strong></div>
+<div class="kv"><span>Margem estimada utilizada</span><strong id="usedMargin">—</strong></div>
+<div class="kv"><span>Posição nominal estimada</span><strong id="notional">—</strong></div></div>
+<p class="tiny risknote">Margem máxima por operação de US$ 150: o sistema pode usar menos margem para respeitar o limite estimado de perda. O alvo compensa os custos, mas não garante execução, lucro ou proteção contra liquidação e gaps. Não envia ordens.</p>
 </section>
 <section class="card">
 <div class="summary"><h2>Replay da estratégia adaptativa</h2><span class="pill">SIMULAÇÃO</span></div>
@@ -84,7 +86,10 @@ footer{padding-top:27px;color:var(--muted);font-size:11px;text-align:center}a{co
 <div class="kv"><span>Resultado nos 30% mais recentes</span><strong id="recent">—</strong></div>
 <div class="kv"><span>Maior queda acumulada (USDT)</span><strong id="dd">—</strong></div>
 <div class="kv"><span>Fator de lucro</span><strong id="factor">—</strong></div>
-<div class="kv"><span>Entradas rejeitadas por risco/custos</span><strong id="rejected">—</strong></div>
+<div class="kv"><span>Entradas rejeitadas pelos filtros</span><strong id="rejected">—</strong></div>
+<div class="kv"><span>Motivos das rejeições</span><strong id="rejectionReasons">—</strong></div>
+<div class="kv"><span>Entradas sem histórico futuro suficiente</span><strong id="incomplete">—</strong></div>
+<div class="kv"><span>Margem média das operações</span><strong id="avgMargin">—</strong></div>
 <div class="kv"><span>Candles ambíguos: alvo e stop no mesmo minuto</span><strong id="ambiguous">—</strong></div>
 <div class="kv"><span>Saídas por invalidação / segurança</span><strong id="earlyExits">—</strong></div>
 <details class="spaced"><summary>Ver últimas operações</summary><div class="inside tablewrap"><table><thead><tr><th>Data</th><th>Direção</th><th>Métodos</th><th>Saída</th><th>Líquido</th></tr></thead><tbody id="rows"></tbody></table></div></details>
@@ -96,15 +101,15 @@ footer{padding-top:27px;color:var(--muted);font-size:11px;text-align:center}a{co
 <details class="card"><summary>Avançado · exposição e custos</summary>
 <div class="inside">
 <div class="fields">
-<label class="field"><span>Margem por operação (USDT)</span><input id="margin" type="number" value="150" min="1" step="1" inputmode="decimal"></label>
+<label class="field"><span>Margem máxima por operação (USDT)</span><input id="margin" type="number" value="150" min="1" step="1" inputmode="decimal"></label>
 <label class="field"><span>Alavancagem (5x provisória)</span><input id="leverage" type="number" value="5" min="1" max="125" step="1" inputmode="numeric"></label>
 <label class="field"><span>Limite de perda estimada por operação (USDT)</span><input id="maxLoss" type="number" value="5" min=".1" max="500" step=".5" inputmode="decimal"></label>
 <label class="field"><span>Taxa por lado (%)</span><input id="fee" type="number" value=".05" min="0" max="1" step=".01" inputmode="decimal"></label>
 <label class="field"><span>Slippage estimado por lado (%)</span><input id="slip" type="number" value=".02" min="0" max="2" step=".01" inputmode="decimal"></label>
 </div>
-<p class="tiny risknote">O stop é técnico, sem alvo fixo em dólares, mas o aplicativo rejeita posições com perda estimada acima do limite. Gaps e liquidação podem superar o limite. Taxas são hipóteses, não a tarifa verificada da sua conta.</p>
+<p class="tiny risknote">O stop é técnico. O tamanho da posição diminui quando necessário para respeitar a perda máxima estimada, e o alvo precisa compensar custos e risco. A perda real pode superar o limite por gaps, slippage, taxas reais e liquidação. Simulação, não execução.</p>
 </div></details>
-<footer>CRYPTO COMPASS v0.7 EXPERIMENTAL · Somente análise e simulação · Não há garantia de lucros · Nenhuma ordem é executada.</footer>
+<footer>CRYPTO COMPASS v0.7.1 EXPERIMENTAL · Somente análise e simulação · Não há garantia de lucros · Nenhuma ordem é executada.</footer>
 </main><script>
 (function(){
 'use strict';
@@ -174,11 +179,40 @@ return {side,regime,states,atr,confirmed:side==='LONG'?longs:side==='SHORT'?shor
 }
 function trigger1(one,i,side){if(i<20)return false;const z=one[i],p=one[i-1],vol=one.slice(i-15,i).reduce((a,b)=>a+b.v,0)/15,volOK=z.v>=vol*.9;
 return volOK&&(side==='LONG'?z.c>z.o&&z.c>p.h:z.c<z.o&&z.c<p.l)}
-function pnl(entry,exit,side,s){const notional=s.margin*s.lev,qty=notional/entry,k=s.fee+s.slip,d=side==='LONG'?1:-1;return qty*(d*(exit-entry)-k*(entry+exit))}
-function plan(entry,side,s,atr5,last5){const d=side==='LONG'?1:-1,part=last5.slice(-4),pivot=side==='LONG'?Math.min(...part.map(x=>x.l)):Math.max(...part.map(x=>x.h));
-const distance=Math.max(.85*atr5,d*(entry-pivot)+.12*atr5);
-const stop=entry-d*distance,target=entry+d*Math.max(1.8*distance,1.3*atr5),loss=pnl(entry,stop,side,s),gain=pnl(entry,target,side,s),r=loss<0?gain/(-loss):NaN;
-return {entry,stop,target,loss,gain,ratio:r,ok:entry>0&&stop>0&&target>0&&Number.isFinite(r)&&loss<0&&-loss<=s.maxLoss&&r>=1.35&&gain>0&&distance<=3*atr5}}
+
+function pnl(entry,exit,side,s,qtyOverride){
+ const qty=qtyOverride===undefined?s.margin*s.lev/entry:qtyOverride,k=s.fee+s.slip,d=side==='LONG'?1:-1;
+ return qty*(d*(exit-entry)-k*(entry+exit))
+}
+function plan(entry,side,s,atr5,last5){
+ const fail=(why,reason)=>({ok:false,why,reason});
+ if(!(Number.isFinite(entry)&&entry>0&&Number.isFinite(atr5)&&atr5>0&&last5.length>=4&&valid(s)))return fail('Dados ou parâmetros insuficientes.','Dados');
+ const d=side==='LONG'?1:-1,k=s.fee+s.slip,part=last5.slice(-4);
+ const pivot=side==='LONG'?Math.min(...part.map(x=>x.l)):Math.max(...part.map(x=>x.h));
+ const distance=Math.max(.85*atr5,d*(entry-pivot)+.12*atr5);
+ if(!Number.isFinite(distance)||distance<=0||distance>3*atr5)return fail('Stop técnico muito distante da volatilidade atual.','Stop distante');
+ const stop=entry-d*distance;
+ if(stop<=0)return fail('Stop calculado fora dos preços válidos.','Preço inválido');
+ // Perda por unidade, com taxa/slippage estimados em ambos os lados.
+ const costAtStop=k*(entry+stop),riskPerUnit=distance+costAtStop;
+ if(!(riskPerUnit>0))return fail('Risco por unidade inválido.','Preço inválido');
+ // Usar a MENOR posição entre margem máxima e limite líquido de risco.
+ const qty=Math.min(s.margin*s.lev/entry,s.maxLoss/riskPerUnit);
+ if(!(qty>0&&Number.isFinite(qty))||qty*entry<10)return fail('Posição viável menor que US$ 10.','Posição insuficiente');
+ const minRR=1.25;
+ // Alvo mínimo para que recompensa líquida / perda líquida >= 1,25.
+ const requiredDist=(minRR*riskPerUnit+2*k*entry)/(1-d*k);
+ const targetDistance=Math.max(1.8*distance,requiredDist*1.005);
+ // Sem inventar alvos ilimitados apenas para mostrar uma entrada.
+ if(targetDistance>Math.min(3*distance,4.4*atr5))return fail('Custos altos: alvo necessário está longe demais da volatilidade recente.','Alvo/custos');
+ const target=entry+d*targetDistance;
+ if(!(target>0&&Number.isFinite(target)))return fail('Alvo inválido.','Preço inválido');
+ const loss=pnl(entry,stop,side,s,qty),gain=pnl(entry,target,side,s,qty),ratio=loss<0?gain/(-loss):NaN;
+ if(!(Number.isFinite(ratio)&&ratio>=minRR-1e-6&&gain>0&&loss<0&&-loss<=s.maxLoss+1e-6))return fail('A relação líquida não atende ao risco definido.','Risco/retorno');
+ return {ok:true,entry,stop,target,loss,gain,ratio,qty,notional:qty*entry,marginUsed:qty*entry/s.lev,
+   stopDistance:distance,targetDistance,riskCap:s.maxLoss};
+}
+
 function lastIndexAt(c,t){let lo=0,hi=c.length-1,ans=-1;while(lo<=hi){const mid=(lo+hi)>>1;if(c[mid].end<=t){ans=mid;lo=mid+1}else hi=mid-1}return ans}
 function statusUI(txt,cls){$('signal').textContent=txt;$('signal').className='tag '+cls}
 function waiting(reason){statusUI('AGUARDAR','wait');$('statusTitle').textContent='Sem entrada validada';$('reason').textContent=reason;$('plan').hidden=true;$('noPlan').hidden=false}
@@ -193,10 +227,10 @@ const setup=setup5(f5,k5,i5,regime);$('context').textContent=regime;$('setup').t
 const timeAfter=last.t-(five.end+1);const eligible=timeAfter>=0&&timeAfter<5*minute,gotTrigger=setup.side!=='WAIT'&&eligible&&trigger1(one,one.length-1,setup.side);
 $('trigger').textContent=gotTrigger?'CONFIRMADO':eligible?'AGUARDAR':'NOVA VELA 5m';
 if(!gotTrigger){waiting(setup.side==='WAIT'?setup.why:'Aguardando confirmação do próximo candle de 1 minuto após a preparação de 5m.');return}
-const p=plan(last.c,setup.side,s,setup.atr,f5.slice(0,i5+1));if(!p.ok){waiting('Gatilho identificado, mas risco, custos ou relação ganho/perda não atendem ao filtro.');return}
+const p=plan(last.c,setup.side,s,setup.atr,f5.slice(0,i5+1));if(!p.ok){waiting('Gatilho encontrado, mas entrada rejeitada: '+p.why);return}
 statusUI(setup.side,setup.side==='LONG'?'long':'short');$('statusTitle').textContent=setup.side==='LONG'?'Compra candidata':'Venda candidata';
 $('reason').textContent='15m '+regime+' · '+setup.confirmed+' métodos 5m · gatilho 1m. Próxima abertura pode diferir do preço indicado.';
-$('entryPlan').textContent=price(p.entry);$('stopPlan').textContent=price(p.stop);$('targetPlan').textContent=price(p.target);$('lossPlan').textContent=usd(p.loss);$('gainPlan').textContent=usd(p.gain);$('ratioPlan').textContent=num(p.ratio)+' : 1';
+$('entryPlan').textContent=price(p.entry);$('stopPlan').textContent=price(p.stop);$('targetPlan').textContent=price(p.target);$('lossPlan').textContent=usd(p.loss);$('gainPlan').textContent=usd(p.gain);$('ratioPlan').textContent=num(p.ratio)+' : 1';$('usedMargin').textContent='US$ '+num(p.marginUsed);$('notional').textContent='US$ '+num(p.notional);
 $('plan').hidden=false;$('noPlan').hidden=true;
 $('interpret').textContent='Stop e alvo dependem do ATR e da estrutura do preço. Este sinal só considera candles já fechados e não prevê o próximo movimento.';
 }
@@ -224,13 +258,13 @@ function stats(tr){let win=0,hit=0,total=0,peak=0,dd=0,profit=0,loss=0,early=0;
 for(const t of tr){if(t.net>0){win++;profit+=t.net}else loss+=Math.abs(t.net);if(t.why==='Alvo')hit++;if(t.why==='Invalidação'||t.why==='Segurança 120m')early++;total+=t.net;peak=Math.max(peak,total);dd=Math.max(dd,peak-total)}
 return {n:tr.length,winRate:tr.length?win/tr.length:NaN,hit:tr.length?hit/tr.length:NaN,total,dd,pf:loss?profit/loss:profit?Infinity:NaN,early}}
 function backtest(one,s,days){const f5=aggregate(one,5),f15=aggregate(one,15),k5=indicators(f5),k15=indicators(f15),k1=indicators(one);
-const index=new Map(one.map((c,i)=>[c.t,i]));const trades=[];let rejected=0,ambiguous=0,until=-1,prepared=0,triggered=0;
+const index=new Map(one.map((c,i)=>[c.t,i]));const trades=[];let rejected=0,ambiguous=0,until=-1,prepared=0,triggered=0,incomplete=0,marginSum=0;const rejectionReasons={};
 const cutoff=one.at(-1).t-days*day;
 for(let i=195;i<f5.length-1;i++){const candle=f5[i],at=candle.end+1;if(at<cutoff||at<=until)continue;
 const i15=lastIndexAt(f15,candle.end);if(i15<65)continue;const regime=trend15(f15,k15,i15),setup=setup5(f5,k5,i,regime);if(setup.side==='WAIT')continue;prepared++;
 const min=index.get(at);if(min===undefined)continue;
 let trig=-1;for(let j=min;j<min+5&&j+1<one.length;j++){if(one[j].t!==at+(j-min)*minute)break;if(trigger1(one,j,setup.side)){trig=j;break}}
-if(trig<0)continue;triggered++;const eIndex=trig+1;if(eIndex>=one.length-120)continue;const entry=one[eIndex].o,p=plan(entry,setup.side,s,setup.atr,f5.slice(0,i+1));if(!p.ok){rejected++;continue}
+if(trig<0)continue;triggered++;const eIndex=trig+1;if(eIndex>=one.length-120){incomplete++;continue}const entry=one[eIndex].o,p=plan(entry,setup.side,s,setup.atr,f5.slice(0,i+1));if(!p.ok){rejected++;rejectionReasons[p.reason]=(rejectionReasons[p.reason]||0)+1;continue}
 const d=setup.side==='LONG'?1:-1;let out=NaN,why='',exitIndex=-1,amb=false;
 for(let j=eIndex;j<Math.min(one.length,eIndex+120);j++){const b=one[j],stopHit=d===1?b.l<=p.stop:b.h>=p.stop,targetHit=d===1?b.h>=p.target:b.l<=p.target;
 if(stopHit&&targetHit){ambiguous++;amb=true}
@@ -240,11 +274,11 @@ if(targetHit){out=p.target;why='Alvo';exitIndex=j;break}
 if(j>=eIndex+4&&j+1<one.length&&((d===1&&b.c<k1.e21[j]&&one[j-1].c<k1.e21[j-1])||(d===-1&&b.c>k1.e21[j]&&one[j-1].c>k1.e21[j-1]))){out=one[j+1].o;why='Invalidação';exitIndex=j+1;break}
 }
 if(!Number.isFinite(out)){exitIndex=eIndex+119;if(exitIndex>=one.length)continue;out=one[exitIndex].c;why='Segurança 120m'}
-if(!Number.isFinite(out))continue;const gross=(s.margin*s.lev/entry)*d*(out-entry),net=pnl(entry,out,setup.side,s);
-trades.push({t:one[eIndex].t,side:setup.side,methods:setup.states.filter(x=>x.status===setup.side).map(x=>x.name),why,gross,net,amb});
+if(!Number.isFinite(out))continue;const gross=p.qty*d*(out-entry),net=pnl(entry,out,setup.side,s,p.qty);marginSum+=p.marginUsed;
+trades.push({t:one[eIndex].t,side:setup.side,methods:setup.states.filter(x=>x.status===setup.side).map(x=>x.name),why,gross,net,amb,margin:p.marginUsed,nominal:p.notional,loss:p.loss,gain:p.gain});
 until=one[exitIndex].t;
 }
-return {trades,rejected,ambiguous,prepared,triggered,fiveCount:f5.length,fifteenCount:f15.length}}
+return {trades,rejected,rejectionReasons,incomplete,averageMargin:trades.length?marginSum/trades.length:NaN,ambiguous,prepared,triggered,fiveCount:f5.length,fifteenCount:f15.length}}
 async function getHistory(days,sym,signal,progress){const now=Date.now(),cutoff=now-(days*1440+1800)*minute;let end=now,all=[],loops=0;
 while(end>cutoff&&loops<38){if(signal.aborted)throw new DOMException('Cancelado','AbortError');const bars=await fetchBars(sym,1500,end,signal);if(!bars.length)break;all.push(...bars);end=bars[0].t-1;loops++;progress(Math.min(.98,(now-end)/(now-cutoff)));if(end<=cutoff)break;await WAIT(110)}
 const map=new Map();for(const b of all)if(b.end<=now&&b.t>=cutoff)map.set(b.t,b);return [...map.values()].sort((a,b)=>a.t-b.t)}
@@ -259,11 +293,11 @@ if(one.length<days*1410+1650){$('testMessage').textContent='Histórico insuficie
 let gaps=0;for(let i=1;i<one.length;i++)if(one[i].t-one[i-1].t!==minute)gaps++;if(gaps>3){$('testMessage').textContent='Histórico possui '+gaps+' lacunas de 1 minuto; teste suspenso.';return}
 $('testMessage').textContent='Simulando entradas e saídas…';await WAIT(20);
 const result=backtest(one,s,days),all=stats(result.trades),start=one.at(-1).t-days*day*.3,recent=stats(result.trades.filter(x=>x.t>=start));
-$('trades').textContent=num(all.n);$('winNet').textContent=pct(all.winRate);$('winTarget').textContent=pct(all.hit);$('net').textContent=usd(all.total);$('net').className=all.total>=0?'green':'red';
+$('trades').textContent=num(all.n);$('winNet').textContent=pct(all.winRate);$('winTarget').textContent=pct(all.hit);$('net').textContent=all.n?usd(all.total):'— (sem operações)';$('net').className=all.total>=0?'green':'red';
 $('recent').textContent=num(recent.n)+' operações · '+pct(recent.winRate)+' lucrativas · '+usd(recent.total);
 $('dd').textContent='US$ '+num(all.dd);$('factor').textContent=Number.isFinite(all.pf)?num(all.pf):'—';
-$('rejected').textContent=num(result.rejected);$('ambiguous').textContent=num(result.ambiguous);$('earlyExits').textContent=num(all.early);
-$('verdict').textContent=(all.n<30?'Amostra pequena: não é possível tirar conclusões confiáveis. ':all.total<0?'O resultado líquido foi negativo. ':'O resultado líquido foi positivo apenas nesta amostra, sem garantia futura. ')+result.prepared+' setups preparados, '+result.triggered+' gatilhos 1m identificados. Alvo e stop tocados na mesma vela contam como stop. Janela dos 30% recentes é uma verificação descritiva, não validação independente.';
+$('rejected').textContent=num(result.rejected);$('rejectionReasons').textContent=Object.entries(result.rejectionReasons).map(([name,n])=>name+': '+n).join(' · ')||'Nenhuma';$('incomplete').textContent=num(result.incomplete);$('avgMargin').textContent=Number.isFinite(result.averageMargin)?'US$ '+num(result.averageMargin):'—';$('ambiguous').textContent=num(result.ambiguous);$('earlyExits').textContent=num(all.early);
+$('verdict').textContent=(all.n<30?'Amostra pequena ou sem operações: não é possível tirar conclusões confiáveis. ':all.total<0?'O resultado líquido foi negativo. ':'O resultado líquido foi positivo apenas nesta amostra, sem garantia futura. ')+result.prepared+' setups preparados, '+result.triggered+' gatilhos 1m identificados. '+result.rejected+' vetados pelos filtros e '+result.incomplete+' excluídos por falta de candles seguintes. Alvo e stop tocados na mesma vela contam como stop. Janela dos 30% recentes é uma verificação descritiva, não validação independente.';
 $('rows').textContent='';for(const t of result.trades.slice(-10).reverse()){const row=document.createElement('tr');for(const x of [new Date(t.t).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),t.side,t.methods.join(' + '),t.why+(t.amb?'*':''),usd(t.net)]){const cell=document.createElement('td');cell.textContent=x;row.append(cell)}$('rows').append(row)}
 $('results').hidden=false;$('bar').style.width='100%';$('testMessage').textContent=num(one.length)+' candles 1m · '+num(result.fiveCount)+' candles 5m · '+num(result.fifteenCount)+' candles 15m · '+days+' dia(s) · margem US$ '+num(s.margin)+' · alavancagem '+num(s.lev)+'x · dados Binance Futures e custos estimados.';
 }catch(e){$('testMessage').textContent=e.name==='AbortError'?'Teste interrompido; selecione o ativo e tente novamente.':'Replay indisponível: '+e.message+'. Nenhum resultado parcial apresentado.'}
