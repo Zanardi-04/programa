@@ -39,7 +39,7 @@ footer{padding-top:27px;color:var(--muted);font-size:11px;text-align:center}a{co
 <h1>Teste de hoje · Somente Pullback EMA 9/21</h1>
 <p class="muted">XRP/USDT · 27/10/2026 · Horário de Brasília. Apenas o primeiro método da 0.8, com tendência de 15m e gatilho de 1m. Resultado só aparece após baixar velas reais no navegador.</p>
 <div class="toolbar">
-<label class="field"><span>Criptomoeda</span><select id="asset"><option value="XRPUSDT">XRP / USDT</option><option value="SOLUSDT">SOL / USDT</option></select></label>
+<label class="field"><span>Criptomoeda</span><select id="asset"><option value="XRPUSDT">XRP / USDT</option></select></label>
 <div class="field"><span>TradingView</span><input disabled value="5m · Binance Perpétuos"></div>
 <button id="refresh" class="primary refresh">↻ Atualizar análise</button>
 </div>
@@ -95,10 +95,10 @@ footer{padding-top:27px;color:var(--muted);font-size:11px;text-align:center}a{co
 <div class="kv" hidden><span>Setups bloqueados pelo ADX</span><strong id="blockedAdx">—</strong></div>
 <div class="kv" hidden><span>Setups bloqueados por volatilidade</span><strong id="blockedVol">—</strong></div>
 <div class="kv" hidden><span>Setups bloqueados por estrutura</span><strong id="blockedStructure">—</strong></div>
-<div class="kv"><span>Resultado nos 30% mais recentes</span><strong id="recent">—</strong></div>
+<div class="kv" hidden><span>Resultado nos 30% mais recentes</span><strong id="recent">—</strong></div>
 <div class="kv"><span>Maior queda acumulada (USDT)</span><strong id="dd">—</strong></div>
 <div class="kv"><span>Fator de lucro</span><strong id="factor">—</strong></div>
-<div class="kv"><span>Entradas rejeitadas pelos filtros</span><strong id="rejected">—</strong></div>
+<div class="kv"><span>Entradas rejeitadas pelo plano de risco</span><strong id="rejected">—</strong></div>
 <div class="kv"><span>Motivos das rejeições</span><strong id="rejectionReasons">—</strong></div>
 <div class="kv"><span>Entradas sem histórico futuro suficiente</span><strong id="incomplete">—</strong></div>
 <div class="kv"><span>Margem média das operações</span><strong id="avgMargin">—</strong></div>
@@ -367,7 +367,7 @@ const one=usable?ca.one:await getHistory(days,sym,replayAbort.signal,x=>{$('bar'
 if(!usable){cached.set(key,{one,at:Date.now()});if(cached.size>2)cached.delete(cached.keys().next().value)}
 if(sym!==symbol||replayAbort.signal.aborted)throw new DOMException('Cancelado','AbortError');
 if(one.length<2800){$('testMessage').textContent='Histórico insuficiente ('+num(one.length)+' candles). Nenhuma estatística apresentada.';return}
-let gaps=0;for(let i=1;i<one.length;i++)if(one[i].t-one[i-1].t!==minute)gaps++;if(gaps>3){$('testMessage').textContent='Histórico possui '+gaps+' lacunas de 1 minuto; teste suspenso.';return}
+let gaps=0;for(let i=1;i<one.length;i++)if(one[i].t-one[i-1].t!==minute)gaps++;if(gaps>0){$('testMessage').textContent='Histórico possui '+gaps+' lacunas de 1 minuto; teste suspenso para evitar operações com velas ausentes.';return}
 $('testMessage').textContent='Simulando entradas e saídas…';await WAIT(20);
 const base=backtest(one,s,days,false),baseStats=stats(base.trades),result=base,all=baseStats,start=Date.parse('2026-10-27T00:00:00-03:00'),recent=all;
 $('trades').textContent=num(all.n);$('winNet').textContent=pct(all.winRate);$('winTarget').textContent=pct(all.hit);$('net').textContent=all.n?usd(all.total):'— (sem operações)';$('net').className=all.total>=0?'green':'red';
@@ -381,7 +381,7 @@ $('results').hidden=false;$('bar').style.width='100%';$('testMessage').textConte
 finally{replayWorking=false;$('test').disabled=false;$('progress').hidden=true;replayAbort=null}}
 $('refresh').addEventListener('click',refresh);
 $('asset').addEventListener('change',()=>{symbol=$('asset').value;if(replayAbort)replayAbort.abort();widgetLoaded=false;$('tv').textContent='';showTV();candles=[];waiting('Mudando o contrato perpétuo…');refresh()});
-$('periods').addEventListener('click',e=>{const b=e.target.closest('[data-days]');if(!b||replayWorking)return;daysChosen=+b.dataset.days;for(const x of $('periods').querySelectorAll('button'))x.classList.toggle('selected',x===b)});
+$('periods')?.addEventListener('click',e=>{const b=e.target.closest('[data-days]');if(!b||replayWorking)return;daysChosen=+b.dataset.days;for(const x of $('periods').querySelectorAll('button'))x.classList.toggle('selected',x===b)});
 $('test').addEventListener('click',runTest);
 $('chartToggle').addEventListener('toggle',()=>{if($('chartToggle').open)showTV()});
 $('tvInterval').addEventListener('change',()=>{widgetLoaded=false;$('tv').textContent='';if($('chartToggle').open)showTV()});
