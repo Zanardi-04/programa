@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#091220"><title>Crypto Compass v1.0 | VWAP 2σ</title>
+<style>
+:root{color-scheme:dark;--bg:#091221;--panel:#102035;--sub:#09182b;--line:#30435b;--ink:#f2f6ff;--muted:#b2c3d7;--green:#43ddac;--red:#ff8193;--blue:#75abff}
+*{box-sizing:border-box}body{margin:0;color:var(--ink);background:radial-gradient(ellipse at top right,#193c58,transparent 45%),var(--bg);font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:860px;margin:auto;padding:20px 15px 65px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
+.brand{display:flex;gap:12px;align-items:center}.mark{height:43px;width:43px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(120deg,#34dabc,#71a9ff);color:#091221;font-size:26px;font-weight:900}
+.brand strong{display:block;font-size:20px;line-height:1.3}.brand small,.muted,.tiny{color:var(--muted)}.brand small{font-size:12px}.pill{border:1px solid var(--line);padding:6px 10px;border-radius:30px;font-size:11px;font-weight:800;white-space:nowrap}
+h1{font-size:23px;line-height:1.3;margin:0 0 7px}h2{font-size:17px;margin:0 0 13px}h3{font-size:14px;margin:16px 0 8px}p{margin:5px 0 12px}.small{font-size:12px}.tiny{font-size:11px}
+.card{border:1px solid var(--line);border-radius:18px;margin-top:15px;padding:18px;background:linear-gradient(150deg,#13273e,#0d1a2d)}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.metric{background:var(--sub);border:1px solid #293b52;border-radius:12px;padding:11px}.metric span{display:block;color:var(--muted);font-size:11px}.metric strong{display:block;font-size:21px;overflow-wrap:anywhere}
+.twocol{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.line{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #24384e}.line:last-child{border-bottom:0}.line strong{text-align:right;overflow-wrap:anywhere}.green{color:var(--green)}.red{color:var(--red)}.note{padding:11px;border-left:3px solid var(--blue);background:#0a1b30;border-radius:6px;font-size:12px}
+button,input{font:inherit;border-radius:10px;min-height:43px}button{cursor:pointer;padding:10px 14px;background:#182b43;border:1px solid #38536c;color:var(--ink);font-weight:750}
+button.primary{border:0;color:#071c2c;background:linear-gradient(100deg,#34d1ae,#7aaaff)}button:disabled{opacity:.6;cursor:not-allowed}
+.controls{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}.field span{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}.field input{width:100%;padding:8px;color:var(--ink);background:#091629;border:1px solid #38516b}
+.periods{display:flex;gap:8px;margin:12px 0}.periods button{flex:1}.periods .selected{border-color:var(--green);background:#21505a}
+#signal{display:inline-block;font-weight:800;padding:7px 14px;border-radius:25px;background:#493b1c;color:#ffdf9c}.waiting{color:#ffdf9c}.status{display:flex;align-items:center;justify-content:space-between;gap:10px}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:12px}th,td{padding:9px;border-bottom:1px solid #253950;text-align:left}.scroll{overflow:auto}
+.progress{height:6px;background:#243850;border-radius:8px;margin-top:10px;overflow:hidden}.progress div{height:100%;width:0;background:var(--green)}
+.tv{height:420px;border-radius:10px;overflow:hidden;background:#09182b}
+a{color:#a4d5ff}footer{text-align:center;margin:23px 0 0;color:var(--muted);font-size:11px}
+@media(max-width:610px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.controls{grid-template-columns:repeat(2,minmax(0,1fr))}.card{padding:13px}.metric strong{font-size:17px}.brand strong{font-size:17px}h1{font-size:21px}}
+</style></head><body><main>
+<header><div class="brand"><div class="mark">◈</div><div><strong>Crypto Compass</strong><small>Reversão à média · VWAP ±2σ · XRP perpétuo</small></div></div><span class="pill">v1.0 · TESTE</span></header>
+<h1>Uma estratégia. Critérios verificáveis.</h1>
+<p class="muted small">Substituímos os cinco métodos por um único setup: rejeição da banda VWAP diária ±2 desvios-padrão no gráfico de 1 minuto. XRP/USDT · Binance USD-M Futures. Nenhuma ordem é enviada.</p>
+<div class="card">
+<div class="status"><h2 style="margin:0">Sinal em tempo real</h2><span id="signal">AGUARDAR</span></div>
+<p id="reason" class="muted small">Carregando candles fechados…</p>
+<div class="grid">
+<div class="metric"><span>Último preço 1m</span><strong id="lastPrice">—</strong></div>
+<div class="metric"><span>VWAP diária (UTC)</span><strong id="vwap">—</strong></div>
+<div class="metric"><span>RSI(14)</span><strong id="rsi">—</strong></div>
+<div class="metric"><span>Banda inferior -2σ</span><strong id="loBand">—</strong></div>
+<div class="metric"><span>Banda superior +2σ</span><strong id="hiBand">—</strong></div>
+<div class="metric"><span>Corpo / ATR(14)</span><strong id="bodyATR">—</strong></div>
+</div>
+<div class="line"><span>Conexão / vela</span><strong id="connected" class="small">Conectando…</strong></div>
+<div class="line"><span>Gatilho</span><strong id="setupText">—</strong></div>
+<div id="tradePlan" class="note" style="margin-top:12px">Sem oportunidade válida no candle fechado mais recente.</div>
+<button id="refresh" class="primary" style="width:100%;margin-top:10px">↻ Atualizar</button>
+</div>
+<section class="card">
+<h2>Único método: rejeição da banda VWAP 2σ</h2>
+<p class="small muted">A VWAP é a média ponderada por volume desde 00:00 UTC. O candle deve tocar uma das bandas de 2 desvios-padrão e fechar de volta para dentro dela. A direção do candle, RSI e corpo maior que 0,5 × ATR fazem parte do mesmo setup, não são métodos independentes.</p>
+<div class="line"><span>Compra (LONG)</span><strong>Rejeição -2σ · candle verde · RSI &lt; 40</strong></div>
+<div class="line"><span>Venda (SHORT)</span><strong>Rejeição +2σ · candle vermelho · RSI &gt; 60</strong></div>
+<div class="line"><span>Entrada simulada</span><strong>Abertura do candle seguinte</strong></div>
+<div class="line"><span>Alvo / stop de referência</span><strong>1,5% / 1,0% do preço</strong></div>
+<div class="line"><span>Saída de segurança</span><strong>360 minutos · limite intradiário</strong></div>
+<p class="note" style="margin-top:12px">Parâmetros de referência fixos para validação. Não são uma reprodução exata dos resultados de outro estudo. Um alvo de 1,5% pode ser difícil de atingir no scalping; não existe garantia de lucratividade.</p>
+</section>
+<section class="card">
+<h2>Replay independente — uma estratégia</h2>
+<p class="muted small">Baixa dados reais de 1 minuto da Binance Futures. Simula taxas e slippage nos dois lados, dimensiona a posição pelo limite estimado de perda, impede posições sobrepostas e assume stop primeiro quando alvo e stop são tocados no mesmo minuto. Não usa dados futuros no gatilho.</p>
+<div class="periods" id="periods"><button data-days="1">1 dia</button><button data-days="7" class="selected">7 dias</button><button data-days="30">30 dias</button></div>
+<button class="primary" id="test" style="width:100%">▶ Testar estratégia VWAP 2σ</button>
+<div class="progress"><div id="bar"></div></div><p id="testMessage" class="tiny">Selecione 1, 7 ou 30 dias para executar o backtest.</p>
+<div id="results" hidden>
+<div class="grid">
+<div class="metric"><span>Operações concluídas</span><strong id="nTrades">—</strong></div>
+<div class="metric"><span>Taxa de acerto líquida</span><strong id="winRate">—</strong></div>
+<div class="metric"><span>Resultado líquido</span><strong id="pnlNet">—</strong></div>
+<div class="metric"><span>Alvos atingidos</span><strong id="tpHits">—</strong></div>
+<div class="metric"><span>Fator de lucro</span><strong id="profitFactor">—</strong></div>
+<div class="metric"><span>Maior queda acumulada</span><strong id="maxDD">—</strong></div>
+</div>
+<div class="line"><span>Custos totais estimados</span><strong id="costs">—</strong></div>
+<div class="line"><span>Encerramentos por stop / alvo / tempo</span><strong id="whyExit">—</strong></div>
+<div class="line"><span>Operações ambíguas (stop e alvo no mesmo candle)</span><strong id="ambiguous">—</strong></div>
+<div class="line"><span>Sinais rejeitados por margem/risco</span><strong id="rejects">—</strong></div>
+<div class="line"><span>Últimos 30% do período — verificação descritiva</span><strong id="recent">—</strong></div>
+<p id="verdict" class="note" style="margin-top:10px"></p>
+<h3>Últimas operações</h3><div class="scroll"><table><thead><tr><th>Data</th><th>Lado</th><th>Saída</th><th>Tempo</th><th>Líquido</th></tr></thead><tbody id="rows"></tbody></table></div>
+</div>
+</section>
+<section class="card">
+<h2>Exposição e custos do replay</h2>
+<div class="controls">
+<label class="field"><span>Margem máx. USDT</span><input id="margin" value="150" type="number" min="1"></label>
+<label class="field"><span>Alavancagem ×</span><input id="lev" value="5" type="number" min="1" max="125"></label>
+<label class="field"><span>Perda máx. estimada USDT</span><input id="maxLoss" value="5" type="number" min=".1"></label>
+<label class="field"><span>Taxa por lado %</span><input id="fee" value=".05" type="number" min="0" max="1" step=".01"></label>
+<label class="field"><span>Slippage por lado %</span><input id="slip" value=".02" type="number" min="0" max="2" step=".01"></label>
+</div>
+<p class="tiny muted">O limite de perda é estimado, não garantido. Gaps, liquidação, funding, spreads variáveis, latência e limitações de execução não são modelados integralmente. Resultados passados não comprovam lucro futuro.</p>
+</section>
+<section class="card"><h2>Gráfico TradingView · XRP perpétuos</h2>
+<div id="tv" class="tv"></div><p class="tiny muted">Gráfico apenas visual. Sinais e replay usam candles Binance Futures por API; não há integração com ordens.</p>
+<a href="https://www.tradingview.com/chart/?symbol=BINANCE%3AXRPUSDT.P" target="_blank" rel="noopener noreferrer">Abrir no TradingView</a></section>
+<footer>CRYPTO COMPASS v1.0 · PESQUISA E SIMULAÇÃO · NÃO EXECUTA ORDENS · NÃO GARANTE RENTABILIDADE</footer>
+</main><script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id),DAY=86400000,MIN=60000,SYMBOL="XRPUSDT";
+let live=[],ws=null,liveAbort=null,testing=false,days=7,backAbort=null;
+const blockedHours=new Set(); // Sem horário otimizado retrospectivamente.
+const fmt=n=>Number(n).toLocaleString("pt-BR",{maximumFractionDigits:2});
+const dollars=n=>Number.isFinite(n)?(n<0?"−US$ ":"+US$ ")+fmt(Math.abs(n)):"—";
+const price=n=>Number.isFinite(n)?"US$ "+n.toLocaleString("en-US",{minimumFractionDigits:4,maximumFractionDigits:5}):"—";
+const pct=n=>Number.isFinite(n)?fmt(100*n)+"%":"—";
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+function settings(){return {margin:+$("margin").value,lev:+$("lev").value,maxLoss:+$("maxLoss").value,fee:+$("fee").value/100,slip:+$("slip").value/100}}
+function valid(s){return Object.values(s).every(Number.isFinite)&&s.margin>0&&s.lev>=1&&s.lev<=125&&s.maxLoss>0&&s.fee>=0&&s.fee<=.01&&s.slip>=0&&s.slip<=.02}
+function parseBars(data){return data.map(x=>({t:+x[0],end:+x[6],o:+x[1],h:+x[2],l:+x[3],c:+x[4],v:+x[5]})).filter(z=>Object.values(z).every(Number.isFinite)&&z.o>0&&z.c>0&&z.l>0&&z.v>=0&&z.h>=Math.max(z.o,z.c)&&z.l<=Math.min(z.o,z.c))}
+async function fetchBars(n,end,signal){const url="https://fapi.binance.com/fapi/v1/klines?symbol="+SYMBOL+"&interval=1m&limit="+n+(end?"&endTime="+end:"");const r=await fetch(url,{cache:"no-store",signal});if(!r.ok)throw Error("Binance Futures HTTP "+r.status);const j=await r.json();if(!Array.isArray(j))throw Error("Resposta inesperada da Binance");return parseBars(j)}
+function indicator(bars){
+const out=new Array(bars.length);let prev=NaN,gain=0,loss=0,atr=0,session=-1,volume=0,vx=0,vx2=0,sessionCount=0;
+for(let i=0;i<bars.length;i++){
+ const b=bars[i],key=Math.floor(b.t/DAY);
+ if(key!==session){session=key;volume=0;vx=0;vx2=0;sessionCount=0}
+ const tp=(b.h+b.l+b.c)/3;volume+=b.v;vx+=tp*b.v;vx2+=tp*tp*b.v;sessionCount++;
+ const vw=volume>0?vx/volume:NaN;
+ const variance=volume>0?Math.max(0,vx2/volume-vw*vw):NaN;
+ const sigma=Math.sqrt(variance);
+ const up=Number.isFinite(prev)?Math.max(0,b.c-prev):0,dn=Number.isFinite(prev)?Math.max(0,prev-b.c):0;
+ if(i<14){gain+=up;loss+=dn;if(i===13){gain/=14;loss/=14}}
+ else {gain=(gain*13+up)/14;loss=(loss*13+dn)/14}
+ const rsi=i<13?NaN:loss===0?(gain===0?50:100):100-100/(1+gain/loss);
+ const tr=Number.isFinite(prev)?Math.max(b.h-b.l,Math.abs(b.h-prev),Math.abs(b.l-prev)):b.h-b.l;
+ if(i<14){atr+=tr;if(i===13)atr/=14}else atr=(atr*13+tr)/14;
+ const a=i<13?NaN:atr,body=Number.isFinite(a)&&a>0?Math.abs(b.c-b.o)/a:NaN;
+ out[i]={vw,lower:vw-2*sigma,upper:vw+2*sigma,rsi,atr:a,body,sessionCount};
+ prev=b.c
+}return out}
+function signal(b,k){
+ if(!k||k.sessionCount<30||!Number.isFinite(k.body)||!Number.isFinite(k.rsi)||!(k.vw>0))return 0;
+ if(blockedHours.has(new Date(b.t).getUTCHours()))return 0;
+ if(b.l<=k.lower&&b.c>k.lower&&b.c>b.o&&k.body>.5&&k.rsi<40)return 1;
+ if(b.h>=k.upper&&b.c<k.upper&&b.c<b.o&&k.body>.5&&k.rsi>60)return -1;
+ return 0
+}
+function calcQty(entry,side,s){
+ const stop=entry*(1-side*.01),target=entry*(1+side*.015);
+ const costs=(s.fee+s.slip)*(entry+stop);
+ const qty=Math.min(s.margin*s.lev/entry,s.maxLoss/(Math.abs(entry-stop)+costs));
+ if(!Number.isFinite(qty)||qty<=0||qty*entry<10)return null;
+ return {entry,stop,target,qty,margin:qty*entry/s.lev}
+}
+function netPnl(p,out,side,s){return p.qty*(side*(out-p.entry)-(s.fee+s.slip)*(p.entry+out))}
+function summary(trades){
+ let total=0,positive=0,negative=0,peak=0,drawdown=0,win=0,targets=0,costs=0;
+ for(const t of trades){total+=t.net;peak=Math.max(peak,total);drawdown=Math.max(drawdown,peak-total);if(t.net>0){win++;positive+=t.net}else negative+=-t.net;if(t.reason==="Alvo")targets++;costs+=t.gross-t.net}
+ return {n:trades.length,total,winRate:trades.length?win/trades.length:NaN,hit:trades.length?targets/trades.length:NaN,pf:negative?positive/negative:positive?Infinity:NaN,drawdown,costs}
+}
+function doBacktest(bars,s,period){
+ const metrics=indicator(bars),cutoff=bars.at(-1).t-period*DAY;
+ const trades=[],dailyLoss=new Map();let skipped=0,ambiguous=0,signals=0,incomplete=0,cooldown=-1;
+ for(let i=25;i<bars.length-1;){
+  const b=bars[i];if(b.t<cutoff){i++;continue}
+  if(i<cooldown){i++;continue}
+  const d=signal(b,metrics[i]);if(!d){i++;continue}signals++;
+  const dayKey=Math.floor(b.t/DAY),loss=dailyLoss.get(dayKey)||0;
+  if(loss<=-15){i++;continue}
+  const e=i+1;
+  if(bars[e].t!==b.t+MIN){incomplete++;i++;continue}
+  const p=calcQty(bars[e].o,d,s);if(!p){skipped++;i++;continue}
+  let j=e,why="",exit=NaN,amb=false;
+  const maxJ=Math.min(e+359,bars.length-1);
+  if(maxJ<e+359){incomplete++;break}
+  for(;j<=maxJ;j++){
+   const bar=bars[j];
+   if(j>e&&bar.t!==bars[j-1].t+MIN){why="Lacuna";break}
+   const stopHit=d===1?bar.l<=p.stop:bar.h>=p.stop;
+   const targetHit=d===1?bar.h>=p.target:bar.l<=p.target;
+   if(stopHit&&targetHit){ambiguous++;amb=true}
+   if(stopHit){why="Stop";exit=d===1?Math.min(bar.o,p.stop):Math.max(bar.o,p.stop);break}
+   if(targetHit){why="Alvo";exit=p.target;break}
+   if(j===maxJ){why="Tempo 360m";exit=bar.c;break}
+  }
+  if(why==="Lacuna"){incomplete++;i=j+1;continue}
+  if(!Number.isFinite(exit)){incomplete++;break}
+  const gross=p.qty*d*(exit-p.entry),net=netPnl(p,exit,d,s);
+  const t={time:bars[e].t,d,reason:why,entry:p.entry,exit,net,gross,duration:j-e+1,amb};
+  trades.push(t);
+  const finishDay=Math.floor(bars[j].t/DAY);
+  dailyLoss.set(finishDay,(dailyLoss.get(finishDay)||0)+net);
+  cooldown=why==="Stop"?j+6:j+1;
+  i=j+1
+ }
+ return {trades,skipped,ambiguous,signals,incomplete,stats:summary(trades)}
+}
+function liveView(){
+ if(live.length<100){$("reason").textContent="Aguardando candles suficientes.";return}
+ const b=live.at(-1),k=indicator(live).at(-1),d=signal(b,k),s=settings();
+ $("lastPrice").textContent=price(b.c);$("vwap").textContent=price(k.vw);$("rsi").textContent=fmt(k.rsi);
+ $("loBand").textContent=price(k.lower);$("hiBand").textContent=price(k.upper);$("bodyATR").textContent=fmt(k.body)+"×";
+ $("connected").textContent="Vela fechada: "+new Date(b.end).toLocaleString("pt-BR",{hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit"});
+ if(Date.now()-b.end>180000){$("signal").textContent="DADOS ANTIGOS";$("setupText").textContent="Atualize a conexão";return}
+ $("signal").textContent=d===1?"COMPRA":d===-1?"VENDA":"AGUARDAR";
+ $("signal").style.background=d===0?"#493b1c":d===1?"#164a3c":"#512a36";
+ $("signal").style.color=d===0?"#ffdf9c":d===1?"#58f3b5":"#ff9bae";
+ $("setupText").textContent=d===1?"Rejeição da banda inferior":d===-1?"Rejeição da banda superior":"Nenhuma rejeição válida";
+ $("reason").textContent=d===1?"Candle de alta rejeitou VWAP -2σ; RSI abaixo de 40.":d===-1?"Candle de baixa rejeitou VWAP +2σ; RSI acima de 60.":"Sem entrada: só sinaliza quando a rejeição estatística completa ocorre no último candle fechado.";
+ const p=d&&valid(s)?calcQty(b.c,d,s):null;
+ $("tradePlan").textContent=p?"PLANO APENAS INDICATIVO — entrada próxima abertura, ainda desconhecida. Referência "+price(p.entry)+" · Stop "+price(p.stop)+" · Alvo "+price(p.target)+" · Margem estimada US$ "+fmt(p.margin)+". NÃO EXECUTA ORDENS.":d?"Sinal detectado, mas limite de margem/risco não permite posicionamento.":"Sem operação candidata neste minuto."
+}
+function closeWS(){if(ws){ws.onmessage=null;ws.onclose=null;ws.close();ws=null}}
+async function refresh(){
+ if(liveAbort)liveAbort.abort();closeWS();const ctrl=new AbortController();liveAbort=ctrl;
+ $("refresh").disabled=true;$("connected").textContent="Buscando histórico 1m…";
+ try{let b=await fetchBars(1500,null,ctrl.signal);if(ctrl.signal.aborted)return;b=b.filter(x=>x.end<Date.now());if(b.length<100)throw Error("Histórico insuficiente");
+ live=b;liveView();openWS();
+ }catch(e){if(!ctrl.signal.aborted){$("reason").textContent="Dados indisponíveis: "+e.message;$("connected").textContent="Sem dados"}}
+ finally{if(liveAbort===ctrl)$("refresh").disabled=false}
+}
+function openWS(){
+ try{ws=new WebSocket("wss://fstream.binance.com/ws/xrpusdt@kline_1m");const own=ws;
+ own.onmessage=e=>{if(ws!==own)return;let m;try{m=JSON.parse(e.data)}catch{return}
+ const k=m.k;if(!k||!k.x||k.s!==SYMBOL)return;const rows=[[k.t,k.o,k.h,k.l,k.c,k.v,k.T]],b=parseBars(rows)[0];if(!b)return;
+ const last=live.at(-1);if(last&&b.t===last.t)live[live.length-1]=b;else if(!last||b.t===last.t+MIN)live.push(b);else{refresh();return}
+ live=live.slice(-1500);liveView();
+ };own.onclose=()=>{if(ws===own){ws=null;$("connected").textContent="Streaming desconectado. Atualize."}};
+ }catch(e){$("connected").textContent="Streaming indisponível"}
+}
+async function getHistory(period,signal,progress){
+ const now=Date.now(),start=now-(period+2)*DAY;let end=now,all=[],loops=0;
+ while(end>start&&loops<38){
+  if(signal.aborted)throw Error("Cancelado");
+  const batch=await fetchBars(1500,end,signal);
+  if(!batch.length)break;
+  all.push(...batch);end=batch[0].t-1;loops++;
+  progress(Math.min(.99,(now-end)/(now-start)));if(end<=start)break;
+  await wait(80)
+ }
+ const unique=new Map();for(const b of all)if(b.end<=now&&b.t>=start)unique.set(b.t,b);
+ return [...unique.values()].sort((a,b)=>a.t-b.t)
+}
+async function runTest(){
+ if(testing)return;const s=settings();if(!valid(s)){$("testMessage").textContent="Confira os parâmetros de risco e custos.";return}
+ testing=true;const ctrl=new AbortController();backAbort=ctrl;$("test").disabled=true;$("results").hidden=true;$("bar").style.width="0%";
+ try{
+  $("testMessage").textContent="Baixando dados reais da Binance Futures…";
+  const b=await getHistory(days,ctrl.signal,x=>{$("bar").style.width=Math.round(x*100)+"%";$("testMessage").textContent="Baixando candles de 1m: "+Math.round(x*100)+"%"});
+  if(b.length<days*1400+1200)throw Error("Histórico insuficiente ("+b.length+" candles)");
+  let gaps=0;for(let i=1;i<b.length;i++)if(b[i].t!==b[i-1].t+MIN)gaps++;
+  if(gaps>2)throw Error("Dados incompletos: "+gaps+" lacunas de 1 minuto");
+  $("testMessage").textContent="Calculando operações sem olhar candles futuros…";await wait(20);
+  const r=doBacktest(b,s,days),x=r.stats;
+  $("nTrades").textContent=fmt(x.n);$("winRate").textContent=pct(x.winRate);
+  $("pnlNet").textContent=x.n?dollars(x.total):"—";$("pnlNet").className=x.total<0?"red":"green";
+  $("tpHits").textContent=pct(x.hit);
+  $("profitFactor").textContent=Number.isFinite(x.pf)?fmt(x.pf):"—";
+  $("maxDD").textContent="US$ "+fmt(x.drawdown);
+  $("costs").textContent="US$ "+fmt(x.costs);
+  $("whyExit").textContent=["Stop","Alvo","Tempo 360m"].map(reason=>reason+": "+r.trades.filter(t=>t.reason===reason).length).join(" · ");
+  $("ambiguous").textContent=fmt(r.ambiguous);$("rejects").textContent=fmt(r.skipped);
+  const cutoff=b.at(-1).t-days*DAY*.3,rs=summary(r.trades.filter(t=>t.time>=cutoff));
+  $("recent").textContent=rs.n+" op. · "+(rs.n?dollars(rs.total):"—");
+  $("verdict").textContent=x.n<30?"Amostra pequena ("+x.n+" operações). Não é possível concluir que o método é lucrativo.":x.total<=0?"Prejuízo líquido nesta amostra. Não use os resultados como autorização para operar dinheiro real.":"Lucro apenas nesta amostra histórica. Não comprova vantagem futura. Valide em novos dados fora da amostra.";
+  $("verdict").textContent+=" "+r.signals+" sinais detectados; "+r.incomplete+" operações excluídas por falta de dados futuros para a saída. "+b.length+" candles de 1m analisados. Sem funding nem execução real.";
+  $("rows").textContent="";
+  for(const t of r.trades.slice(-12).reverse()){
+   const row=document.createElement("tr");
+   for(const v of [new Date(t.time).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}),t.d===1?"LONG":"SHORT",t.reason+(t.amb?"*":""),t.duration+" min",dollars(t.net)]){
+    const td=document.createElement("td");td.textContent=v;row.append(td)}
+   $("rows").append(row)
+  }
+  $("results").hidden=false;$("bar").style.width="100%";
+  $("testMessage").textContent="Replay concluído · "+days+" dia(s) · "+fmt(b.length)+" candles de 1 minuto · XRP/USDT Futures · custos estimados";
+ }catch(e){$("testMessage").textContent="Replay não concluído: "+e.message}
+ finally{$("test").disabled=false;testing=false;backAbort=null}
+}
+function chart(){
+ const host=$("tv"),wrap=document.createElement("div"),inner=document.createElement("div"),script=document.createElement("script");
+ wrap.className="tradingview-widget-container";wrap.style.cssText="height:100%;width:100%";
+ inner.className="tradingview-widget-container__widget";inner.style.cssText="height:100%;width:100%";
+ wrap.append(inner);host.append(wrap);
+ script.async=true;script.src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+ script.textContent=JSON.stringify({autosize:true,symbol:"BINANCE:XRPUSDT.P",interval:"1",timezone:"America/Sao_Paulo",theme:"dark",locale:"br",hide_side_toolbar:true,allow_symbol_change:false,support_host:"https://www.tradingview.com"});
+ wrap.append(script)
+}
+$("refresh").addEventListener("click",refresh);
+$("test").addEventListener("click",runTest);
+$("periods").addEventListener("click",e=>{const b=e.target.closest("button[data-days]");if(!b||testing)return;days=+b.dataset.days;for(const btn of $("periods").querySelectorAll("button"))btn.classList.toggle("selected",btn===b)});
+for(const id of ["margin","lev","maxLoss","fee","slip"])$(id).addEventListener("input",()=>{if(live.length>100)liveView();$("results").hidden=true;$("testMessage").textContent="Parâmetros alterados: execute novo replay."});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&(!live.length||Date.now()-live.at(-1).end>240000))refresh()});
+chart();refresh();
+})();
+</script></body></html>
