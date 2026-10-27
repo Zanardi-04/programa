@@ -290,6 +290,70 @@ function plan(entry,side,s,atr5,last5){
    stopDistance:distance,targetDistance,riskCap:s.maxLoss};
 }
 
+
+function flip(side){return side==='LONG'?'SHORT':side==='SHORT'?'LONG':side}
+function mirroredStates(states){return states.map(x=>({...x,status:flip(x.status),why:(x.status==='LONG'||x.status==='SHORT'?'Original '+x.status+'; teste '+flip(x.status)+'. ':'')+x.why}))}
+function mirrorPlan(original,entry,originalSide,s){
+ if(!original.ok)return original;
+ const side=flip(originalSide),d=side==='LONG'?1:-1,k=s.fee+s.slip;
+ const stop=entry-d*original.stopDistance,target=entry+d*original.targetDistance;
+ if(!(stop>0&&target>0))return {ok:false,reason:'Espelho',why:'Alvo/stop espelhados inválidos'};
+ const risk=original.stopDistance+k*(entry+stop),qty=Math.min(original.qty,s.maxLoss/risk,s.margin*s.lev/entry);
+ if(!(Number.isFinite(qty)&&qty>0))return {ok:false,reason:'Espelho',why:'Posição espelhada inviável'};
+ const loss=pnl(entry,stop,side,s,qty),gain=pnl(entry,target,side,s,qty);
+ if(!(loss<0&&-loss<=s.maxLoss+1e-5&&gain>0))return {ok:false,reason:'Espelho',why:'Risco/custos inviáveis para o inverso'};
+ return {ok:true,entry,side,stop,target,loss,gain,qty,ratio:gain/-loss,marginUsed:qty*entry/s.lev,notional:qty*entry};
+}
+function simulateLeg(one,k1,start,side,p,s,qty){
+ const d=side==='LONG'?1:-1;let exit=NaN,why='',exitIndex=-1,amb=false;
+ for(let j=start;j<Math.min(one.length,start+120);j++){
+ const b=one[j],stopHit=d===1?b.l<=p.stop:b.h>=p.stop,targetHit=d===1?b.h>=p.target:b.l<=p.target;
+ if(stopHit&&targetHit)amb=true;
+ // Sem ordem intraminuto confiável, assume stop primeiro.
+ if(stopHit){exit=d===1?Math.min(p.stop,b.o):Math.max(p.stop,b.o);why='Stop';exitIndex=j;break}
+ if(targetHit){exit=p.target;why='Alvo';exitIndex=j;break}
+ if(j>=start+4&&j+1<one.length&&((d===1&&b.c<k1.e21[j]&&one[j-1].c<k1.e21[j-1])||(d===-1&&b.c>k1.e21[j]&&one[j-1].c>k1.e21[j-1]))){
+ exit=one[j+1].o;why='Invalidação';exitIndex=j+1;break}
+ }
+ if(!Number.isFinite(exit)){exitIndex=start+119;if(exitIndex>=one.length)return null;exit=one[exitIndex].c;why='Segurança 120m'}
+ const entry=one[start].o,sgn=side==='LONG'?1:-1;
+ return {t:one[start].t,side,exitIndex,why,net:pnl(entry,exit,side,s,qty),gross:qty*sgn*(exit-entry),amb,margin:qty*entry/s.lev};
+}
+function compareInverse(one,s,days){
+ const five=aggregate(one,5),fifteen=aggregate(one,15),k5=indicators(five),k15=indicators(fifteen),k1=indicators(one),a15=adx14(fifteen);
+ const indexes=new Map(one.map((b,i)=>[b.t,i])),original=[],inverse=[],rejectionReasons={},filterCounts={ADX:0,VOL:0,STRUCT:0};
+ const cutoff=one.at(-1).t-days*day;let until=-1,prepared=0,triggered=0,rejected=0,incomplete=0,ambiguous=0,marginSum=0;
+ for(let i=195;i<five.length-1;i++){
+ const candle=five[i],at=candle.end+1;if(at<cutoff||at<=until)continue;
+ const i15=lastIndexAt(fifteen,candle.end);if(i15<65)continue;
+ const regime=trend15(fifteen,k15,i15),setup=setup5(five,k5,i,regime);if(setup.side==='WAIT')continue;prepared++;
+ const extra=extraFilters(regime,setup.side,five,k5,i,fifteen,k15,i15,a15);
+ if(!extra.ok){if(filterCounts[extra.which]!==undefined)filterCounts[extra.which]++;continue}
+ const first=indexes.get(at);if(first===undefined)continue;
+ let trigger=-1;for(let j=first;j<first+5&&j+1<one.length;j++){
+ if(one[j].t!==at+(j-first)*minute)break;
+ if(trigger1(one,j,setup.side)){trigger=j;break}
+ }
+ if(trigger<0)continue;triggered++;
+ const entryIndex=trigger+1;if(entryIndex>=one.length-120){incomplete++;continue}
+ const entry=one[entryIndex].o,basePlan=plan(entry,setup.side,s,setup.atr,five.slice(0,i+1));
+ if(!basePlan.ok){rejected++;rejectionReasons[basePlan.reason]=(rejectionReasons[basePlan.reason]||0)+1;continue}
+ const inversePlan=mirrorPlan(basePlan,entry,setup.side,s);
+ if(!inversePlan.ok){rejected++;rejectionReasons[inversePlan.reason]=(rejectionReasons[inversePlan.reason]||0)+1;continue}
+ const qty=Math.min(basePlan.qty,inversePlan.qty);
+ const normal=simulateLeg(one,k1,entryIndex,setup.side,basePlan,s,qty);
+ const opposite=simulateLeg(one,k1,entryIndex,flip(setup.side),inversePlan,s,qty);
+ if(!normal||!opposite){incomplete++;continue}
+ const methods=setup.states.filter(m=>m.status===setup.side).map(m=>m.name);
+ normal.methods=methods;opposite.methods=methods;opposite.originalSide=setup.side;
+ original.push(normal);inverse.push(opposite);
+ marginSum+=qty*entry/s.lev;ambiguous+=Number(normal.amb)+Number(opposite.amb);
+ until=Math.max(one[normal.exitIndex].t,one[opposite.exitIndex].t);
+ }
+ return {original,inverse,rejected,rejectionReasons,filterCounts,incomplete,ambiguous,prepared,triggered,
+ averageMargin:inverse.length?marginSum/inverse.length:NaN,fiveCount:five.length,fifteenCount:fifteen.length};
+}
+
 function lastIndexAt(c,t){let lo=0,hi=c.length-1,ans=-1;while(lo<=hi){const mid=(lo+hi)>>1;if(c[mid].end<=t){ans=mid;lo=mid+1}else hi=mid-1}return ans}
 function statusUI(txt,cls){$('signal').textContent=txt;$('signal').className='tag '+cls}
 function waiting(reason){statusUI('AGUARDAR','wait');$('statusTitle').textContent='Sem entrada validada';$('reason').textContent=reason;$('plan').hidden=true;$('noPlan').hidden=false}
@@ -300,16 +364,16 @@ if(now-last.end>180000){waiting('Histórico de 1 minuto desatualizado. Atualize.
 const s=params();if(!valid(s)){waiting('Verifique as configurações de margem, risco e taxas.');return}
 const f5=aggregate(one,5),f15=aggregate(one,15);if(f5.length<70||f15.length<65){waiting('Aguardando candles completos de 5m e 15m.');return}
 const k5=indicators(f5),k15=indicators(f15),five=f5.at(-1),i5=f5.length-1,i15=lastIndexAt(f15,five.end),regime=trend15(f15,k15,i15);
-const setup=setup5(f5,k5,i5,regime),a15=adx14(f15),extra=extraFilters(regime,setup.side,f5,k5,i5,f15,k15,i15,a15),viewVol=volatility5(f5,k5,i5),viewStr=structure5(f5,i5);$('adx15').textContent=Number.isFinite(a15.adx[i15])?num(a15.adx[i15])+' · '+(a15.adx[i15]<18?'fraco':a15.adx[i15]<25?'moderado':'forte'):'—';$('vola').textContent=viewVol.label;$('structure').textContent=viewStr.label;$('filters').textContent=setup.side==='WAIT'?'Sem setup':extra.ok?'Passou nos filtros':extra.reason;$('context').textContent=regime;$('setup').textContent=setup.side==='WAIT'?'AGUARDAR':setup.side+' '+setup.confirmed+'/5';methodUI(setup.states);
+const setup=setup5(f5,k5,i5,regime),a15=adx14(f15),extra=extraFilters(regime,setup.side,f5,k5,i5,f15,k15,i15,a15),viewVol=volatility5(f5,k5,i5),viewStr=structure5(f5,i5);$('adx15').textContent=Number.isFinite(a15.adx[i15])?num(a15.adx[i15])+' · '+(a15.adx[i15]<18?'fraco':a15.adx[i15]<25?'moderado':'forte'):'—';$('vola').textContent=viewVol.label;$('structure').textContent=viewStr.label;$('filters').textContent=setup.side==='WAIT'?'Sem setup':extra.ok?'Passou nos filtros':extra.reason;$('context').textContent=regime;$('setup').textContent=setup.side==='WAIT'?'AGUARDAR':flip(setup.side)+' '+setup.confirmed+'/5 (inverso)';$('originalSignal').textContent=setup.side==='WAIT'?'AGUARDAR':setup.side;$('inverseSignal').textContent=setup.side==='WAIT'?'AGUARDAR':flip(setup.side);methodUI(mirroredStates(setup.states));
 const timeAfter=last.t-(five.end+1);const eligible=timeAfter>=0&&timeAfter<5*minute,gotTrigger=setup.side!=='WAIT'&&eligible&&trigger1(one,one.length-1,setup.side);
 $('trigger').textContent=gotTrigger?'CONFIRMADO':eligible?'AGUARDAR':'NOVA VELA 5m';
 if(!gotTrigger){waiting(setup.side==='WAIT'?setup.why:'Aguardando gatilho 1m após a preparação 5m.');return}if(!extra.ok){waiting('Gatilho identificado, mas filtros adicionais rejeitaram: '+extra.reason);return}
-const p=plan(last.c,setup.side,s,setup.atr,f5.slice(0,i5+1));if(!p.ok){waiting('Gatilho encontrado, mas entrada rejeitada: '+p.why);return}
-statusUI(setup.side,setup.side==='LONG'?'long':'short');$('statusTitle').textContent=setup.side==='LONG'?'Compra candidata':'Venda candidata';
-$('reason').textContent='15m '+regime+' · '+setup.confirmed+' métodos 5m · gatilho 1m. Próxima abertura pode diferir do preço indicado.';
+const normalPlan=plan(last.c,setup.side,s,setup.atr,f5.slice(0,i5+1));if(!normalPlan.ok){waiting('Sinal original rejeitado: '+normalPlan.why);return}const p=mirrorPlan(normalPlan,last.c,setup.side,s);if(!p.ok){waiting('Sinal invertido rejeitado: '+p.why);return}
+const side=flip(setup.side);statusUI(side,side==='LONG'?'long':'short');$('statusTitle').textContent=side==='LONG'?'Compra contrária (teste)':'Venda contrária (teste)';
+$('reason').textContent='Sinal original '+setup.side+' → operação invertida '+side+'. Mesmo momento de entrada, stop/alvo opostos.';
 $('entryPlan').textContent=price(p.entry);$('stopPlan').textContent=price(p.stop);$('targetPlan').textContent=price(p.target);$('lossPlan').textContent=usd(p.loss);$('gainPlan').textContent=usd(p.gain);$('ratioPlan').textContent=num(p.ratio)+' : 1';$('usedMargin').textContent='US$ '+num(p.marginUsed);$('notional').textContent='US$ '+num(p.notional);
 $('plan').hidden=false;$('noPlan').hidden=true;
-$('interpret').textContent='Stop e alvo dependem do ATR e da estrutura do preço. Este sinal só considera candles já fechados e não prevê o próximo movimento.';
+$('interpret').textContent='Teste contrarian: os indicadores leem o mercado real. Apenas a operação candidata é invertida. Não é garantia de lucro.';
 }
 function haltSocket(){const w=socket;socket=null;if(w){w.onclose=null;w.onmessage=null;w.close()}}
 async function refresh(){const sym=symbol;haltSocket();if(abort)abort.abort();abort=new AbortController();$('refresh').disabled=true;$('connection').textContent='Baixando histórico 1m…';
@@ -369,13 +433,13 @@ if(sym!==symbol||replayAbort.signal.aborted)throw new DOMException('Cancelado','
 if(one.length<days*1410+1650){$('testMessage').textContent='Histórico insuficiente ('+num(one.length)+' candles). Nenhuma estatística apresentada.';return}
 let gaps=0;for(let i=1;i<one.length;i++)if(one[i].t-one[i-1].t!==minute)gaps++;if(gaps>3){$('testMessage').textContent='Histórico possui '+gaps+' lacunas de 1 minuto; teste suspenso.';return}
 $('testMessage').textContent='Simulando entradas e saídas…';await WAIT(20);
-const base=backtest(one,s,days,false),baseStats=stats(base.trades),result=backtest(one,s,days,true),all=stats(result.trades),start=one.at(-1).t-days*day*.3,recent=stats(result.trades.filter(x=>x.t>=start));
+const result=compareInverse(one,s,days),baseStats=stats(result.original),all=stats(result.inverse),start=one.at(-1).t-days*day*.3,recent=stats(result.inverse.filter(x=>x.t>=start));
 $('trades').textContent=num(all.n);$('winNet').textContent=pct(all.winRate);$('winTarget').textContent=pct(all.hit);$('net').textContent=all.n?usd(all.total):'— (sem operações)';$('net').className=all.total>=0?'green':'red';
 $('recent').textContent=num(recent.n)+' operações · '+pct(recent.winRate)+' lucrativas · '+usd(recent.total);
 $('dd').textContent='US$ '+num(all.dd);$('factor').textContent=Number.isFinite(all.pf)?num(all.pf):'—';
 $('baseline').textContent=baseStats.n+' op. · '+pct(baseStats.winRate)+' · '+(baseStats.n?usd(baseStats.total):'—');$('filtered').textContent=all.n+' op. · '+pct(all.winRate)+' · '+(all.n?usd(all.total):'—');$('blockedAdx').textContent=num(result.filterCounts.ADX);$('blockedVol').textContent=num(result.filterCounts.VOL);$('blockedStructure').textContent=num(result.filterCounts.STRUCT);$('rejected').textContent=num(result.rejected);$('rejectionReasons').textContent=Object.entries(result.rejectionReasons).map(([name,n])=>name+': '+n).join(' · ')||'Nenhuma';$('incomplete').textContent=num(result.incomplete);$('avgMargin').textContent=Number.isFinite(result.averageMargin)?'US$ '+num(result.averageMargin):'—';$('ambiguous').textContent=num(result.ambiguous);$('earlyExits').textContent=num(all.early);
-$('verdict').textContent=(all.n<30?'Amostra pequena ou sem operações: não é possível tirar conclusões confiáveis. ':all.total<0?'O resultado líquido foi negativo. ':'O resultado líquido foi positivo apenas nesta amostra, sem garantia futura. ')+result.prepared+' setups preparados, '+result.triggered+' gatilhos 1m identificados após os filtros. '+result.rejected+' vetados pelos filtros e '+result.incomplete+' excluídos por falta de candles seguintes. Alvo e stop tocados na mesma vela contam como stop. Janela dos 30% recentes é uma verificação descritiva, não validação independente.';
-$('rows').textContent='';for(const t of result.trades.slice(-10).reverse()){const row=document.createElement('tr');for(const x of [new Date(t.t).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),t.side,t.methods.join(' + '),t.why+(t.amb?'*':''),usd(t.net)]){const cell=document.createElement('td');cell.textContent=x;row.append(cell)}$('rows').append(row)}
+$('verdict').textContent=(all.n<30?'Amostra pequena ou sem operações: não é possível tirar conclusões confiáveis. ':all.total<0?'O resultado líquido foi negativo. ':'O resultado líquido foi positivo apenas nesta amostra, sem garantia futura. ')+result.prepared+' setups originais, '+result.triggered+' gatilhos 1m identificados após os filtros. Cada operação foi comparada também na direção oposta. '+result.rejected+' vetados pelos filtros e '+result.incomplete+' excluídos por falta de candles seguintes. Alvo e stop tocados na mesma vela contam como stop; ambiguidades somadas dos dois lados. Janela dos 30% recentes é uma verificação descritiva, não validação independente.';
+$('rows').textContent='';for(const t of result.inverse.slice(-10).reverse()){const row=document.createElement('tr');for(const x of [new Date(t.t).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),t.originalSide+' → '+t.side,t.methods.join(' + '),t.why+(t.amb?'*':''),usd(t.net)]){const cell=document.createElement('td');cell.textContent=x;row.append(cell)}$('rows').append(row)}
 $('results').hidden=false;$('bar').style.width='100%';$('testMessage').textContent=num(one.length)+' candles 1m · '+num(result.fiveCount)+' candles 5m · '+num(result.fifteenCount)+' candles 15m · '+days+' dia(s) · margem US$ '+num(s.margin)+' · alavancagem '+num(s.lev)+'x · dados Binance Futures e custos estimados.';
 }catch(e){$('testMessage').textContent=e.name==='AbortError'?'Teste interrompido; selecione o ativo e tente novamente.':'Replay indisponível: '+e.message+'. Nenhum resultado parcial apresentado.'}
 finally{replayWorking=false;$('test').disabled=false;$('progress').hidden=true;replayAbort=null}}
