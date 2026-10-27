@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#091120">
+<title>Crypto Compass v0.5 · Confluência 5m</title>
+<style>
+:root{color-scheme:dark;--bg:#08101e;--panel:#101e32;--muted:#a5b4c8;--edge:#273951;--ink:#f0f6ff;--green:#48e0ac;--red:#ff8599;--yellow:#ffd17d;--blue:#7ebdff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top right,#162e4d 0,transparent 42%),var(--bg);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:840px;margin:0 auto;padding:18px 14px 74px}header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:22px}
+.brand{display:flex;align-items:center;gap:12px}.mark{background:linear-gradient(135deg,#33e8ba,#479cff);color:#051426;width:43px;height:43px;display:grid;place-items:center;border-radius:13px;font-weight:900;font-size:26px}
+.brand strong{display:block;font-size:20px;line-height:1.2}.brand small,.sub,.hint{display:block;color:var(--muted);font-size:12px}.pill{font-size:11px;font-weight:800;letter-spacing:.04em;border:1px solid var(--edge);border-radius:30px;padding:6px 10px;color:var(--muted);white-space:nowrap}
+h1{font-size:24px;line-height:1.2;margin:0 0 7px}h2{font-size:17px;margin:0 0 11px}p{margin:6px 0 12px}.muted{color:var(--muted)}.small{font-size:12px}.card{background:linear-gradient(155deg,rgba(19,37,62,.96),rgba(12,23,40,.98));border:1px solid var(--edge);border-radius:19px;padding:19px;margin-top:15px;box-shadow:0 15px 48px #0002}
+.toolbar{display:grid;grid-template-columns:minmax(120px,1fr) minmax(130px,1fr);gap:10px;margin-top:16px}.toolbar .refresh{grid-column:1/-1}
+select,input,button{font:inherit;min-height:44px;border-radius:11px}select,input{width:100%;border:1px solid #374967;background:#0a1527;color:var(--ink);padding:10px 12px}
+input:focus,select:focus,button:focus-visible,summary:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+button{background:#182941;border:1px solid #35506c;color:var(--ink);padding:10px 14px;cursor:pointer;font-weight:750}
+button.primary{background:linear-gradient(110deg,#39d9b1,#73aaff);color:#071323;border:none}button[disabled]{opacity:.56;cursor:not-allowed}
+.statusline{margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted)}.dot{height:9px;width:9px;border-radius:50%;background:#71839b;display:inline-block}.dot.live{background:var(--green)}.dot.bad{background:var(--red)}
+.signal{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 13px}.signal strong{font-size:24px}.tag{padding:9px 14px;font-weight:850;border-radius:30px;font-size:14px}.tag.wait{color:var(--yellow);background:#ffce7c15;border:1px solid #94794d}.tag.long{color:var(--green);background:#38dfac18;border:1px solid #317967}.tag.short{color:var(--red);background:#ff859916;border:1px solid #a55b6a}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.metric{background:#0a1729;border:1px solid #24344b;border-radius:13px;padding:11px 10px}.metric small{color:var(--muted);font-size:11px;display:block}.metric strong{font-size:18px;display:block;font-variant-numeric:tabular-nums}.green{color:var(--green)}.red{color:var(--red)}.yellow{color:var(--yellow)}
+.note{background:#091a2b;border-left:3px solid #6c9dda;border-radius:7px;padding:10px 12px;font-size:12px;color:#c7d8eb}
+.summary{display:flex;justify-content:space-between;align-items:center;gap:10px}summary{list-style:none;cursor:pointer;font-weight:800;padding:5px 0}summary::-webkit-details-marker{display:none}summary::after{content:"⌄";float:right;color:var(--muted)}details[open]>summary::after{content:"⌃"}details.card{padding-top:13px}details .inside{padding-top:12px}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.field span{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}.field input,.field select{min-height:42px}
+.kv{display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid #24344b;padding:9px 0}.kv:last-child{border-bottom:0}.kv strong{text-align:right;font-variant-numeric:tabular-nums}.spaced{margin-top:15px}.progress{height:6px;background:#1a2c43;border-radius:5px;margin-top:12px;overflow:hidden}.progress>div{width:0;height:100%;background:var(--green);transition:width .2s}
+.columns{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat{border:1px solid var(--edge);border-radius:12px;padding:11px;background:#0b1729}.stat span{display:block;color:var(--muted);font-size:12px}.stat strong{font-size:23px}
+.segment{display:flex;gap:8px;flex-wrap:wrap}.segment button{flex:1;min-width:70px}.segment button.selected{background:#234d59;border-color:var(--green)}
+.tv{height:480px;width:100%;overflow:hidden;border-radius:12px;background:#0a1425}.tvmsg{font-size:12px;color:var(--muted);padding:12px}
+table{border-collapse:collapse;width:100%;font-size:12px;min-width:480px}th,td{padding:9px 7px;text-align:left;border-bottom:1px solid #24344b}th{color:var(--muted)}.tablewrap{overflow-x:auto}
+footer{padding-top:27px;color:var(--muted);font-size:11px;text-align:center}a{color:#96d1ff}
+@media(max-width:400px){h1{font-size:22px}.card{padding:14px}.metric strong{font-size:15px}.grid{gap:5px}.metric{padding:8px}.pill{font-size:10px}}
+.methods{display:grid;gap:8px}.method{background:#0b192a;border:1px solid var(--edge);border-radius:11px;padding:10px;display:flex;justify-content:space-between;align-items:center;gap:8px}.method .detail{font-size:12px;color:var(--muted)}.method .state{font-size:11px;font-weight:800;white-space:nowrap}.method .state.LONG{color:var(--green)}.method .state.SHORT{color:var(--red)}.method .state.WAIT{color:var(--yellow)}.method .state.NEUTRAL{color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+<header><div class="brand"><span class="mark">◈</span><div><strong>Crypto Compass</strong><small>Edição ChatGPT · Scalping de 5 minutos</small></div></div><span class="pill">v0.5</span></header>
+<h1>Uma análise de cada vez.</h1>
+<p class="muted">Cinco métodos de 5 minutos: veja as confirmações e teste o histórico. Sem ordens reais.</p>
+<div class="toolbar">
+<label class="field"><span>Criptomoeda</span><select id="asset"><option value="XRPUSDT">XRP / USDT</option><option value="SOLUSDT">SOL / USDT</option></select></label>
+<div class="field"><span>Gráfico</span><input value="5 minutos · perpétuos" disabled></div>
+<button class="primary refresh" id="refresh">↻ Atualizar análise</button>
+</div>
+<div class="statusline"><span class="dot" id="dot"></span><b id="connection">Conectando…</b><span id="lastCandle">Aguardando candles da Binance Futures</span></div>
+<section class="card">
+<div class="signal"><div><div class="sub">SINAL DA ESTRATÉGIA</div><strong id="statusTitle">Carregando…</strong></div><span class="tag wait" id="signal">AGUARDAR</span></div>
+<p id="reason" class="muted">Carregando candles fechados de 5 minutos.</p>
+<div class="grid">
+<div class="metric"><small>Último fechamento</small><strong id="price">—</strong></div>
+<div class="metric"><small>Tendência</small><strong id="trend">—</strong></div>
+<div class="metric"><small>Volume relativo</small><strong id="volume">—</strong></div>
+</div>
+<div class="kv"><span>Tipo de mercado</span><strong id="regime">—</strong></div><div class="kv"><span>Confirmações</span><strong id="confluence">—</strong></div><div class="note spaced" id="interpret">O sinal só é calculado com candle fechado. Um sinal não garante uma operação lucrativa.</div>
+</section>
+<section class="card"><h2>Os cinco métodos</h2><p class="muted small">Uma entrada candidata precisa de pelo menos dois métodos na mesma direção, sem confirmação oposta. AGUARDAR significa que falta confirmação; NEUTRO é ausência de sinal.</p><div id="methods" class="methods">Aguardando preços…</div></section>
+<section class="card">
+<h2>Plano de operação</h2>
+<div id="noPlan" class="muted">Aguardando um sinal válido. Não é necessário preencher nada.</div>
+<div id="plan" hidden>
+<div class="grid">
+<div class="metric"><small>Entrada teórica</small><strong id="entryPlan">—</strong></div>
+<div class="metric"><small>Stop-loss</small><strong id="stopPlan">—</strong></div>
+<div class="metric"><small>Take-profit</small><strong id="targetPlan">—</strong></div>
+</div>
+<div class="kv"><span>Margem estimada</span><strong id="marginPlan">—</strong></div>
+<div class="kv"><span>Perda estimada no stop</span><strong class="red" id="lossPlan">—</strong></div>
+<div class="kv"><span>Ganho estimado no alvo</span><strong class="green" id="gainPlan">—</strong></div>
+</div>
+<p class="small muted">Plano demonstrativo, não é ordem nem recomendação. Entrada no fechamento é apenas referência: o preço real poderá ser diferente. Funding e liquidação não são calculados.</p>
+</section>
+<section class="card">
+<div class="summary"><h2>Testar nossa estratégia</h2><span class="pill">REPLAY</span></div>
+<p class="muted">Compara a confluência dos cinco métodos em candles fechados de 5 minutos, já descontando taxas e slippage estimados.</p>
+<div class="segment" id="periods"><button type="button" data-days="1">1 dia</button><button type="button" data-days="7" class="selected">7 dias</button><button type="button" data-days="30">30 dias</button></div>
+<button class="primary spaced" id="test" style="width:100%">▶ Testar estratégia</button>
+<div class="progress" id="progress" hidden><div id="bar"></div></div>
+<p id="testMessage" class="small muted">Selecione um período e toque em Testar estratégia. Dados históricos da Binance Futures.</p>
+<div id="results" hidden>
+<div class="columns">
+<div class="stat"><span>Operações identificadas</span><strong id="trades">—</strong></div>
+<div class="stat"><span>Acerto após custos</span><strong id="winNet">—</strong></div>
+<div class="stat"><span>Acerto antes dos custos</span><strong id="winGross">—</strong></div>
+<div class="stat"><span>Resultado líquido</span><strong id="netR">—</strong></div>
+</div>
+<div class="note spaced" id="verdict">—</div><p class="muted small">R significa uma unidade de risco planejado, não dólares. Ex.: +1 R equivale a ganhar o valor arriscado em uma operação; −1 R equivale a perdê-lo. Não são resultados reais.</p>
+<div class="kv"><span>Resultado nos 30% mais recentes</span><strong id="validation">—</strong></div>
+<div class="kv"><span>Entradas descartadas por custos</span><strong id="blockedCost">—</strong></div><div class="kv"><span>Maior queda acumulada</span><strong id="drawdown">—</strong></div>
+<div class="kv"><span>Lucro bruto das operações vencedoras / perdas</span><strong id="profitFactor">—</strong></div>
+<details class="spaced"><summary>Ver últimas operações</summary><div class="inside tablewrap"><table><thead><tr><th>Data</th><th>Lado</th><th>Métodos</th><th>Motivo da saída</th><th>Antes</th><th>Depois</th></tr></thead><tbody id="rows"></tbody></table></div></details>
+</div>
+</section>
+<details class="card" id="chartToggle" open><summary>Ver gráfico TradingView de perpétuos · 5m</summary>
+<div class="inside"><p class="small muted">Gráfico visual do contrato perpétuo Binance. A análise e o Replay usam uma consulta separada de candles Binance Futures, não extraem dados do TradingView nem da Axiom. Não é possível desenhar diretamente sobre as velas desse widget as marcas dos nossos métodos.</p><div id="tv" class="tv"><p class="tvmsg">Abra esta seção para carregar o gráfico.</p></div><a id="tvlink" target="_blank" rel="noopener noreferrer" href="https://www.tradingview.com/">Abrir no TradingView</a></div>
+</details>
+<details class="card"><summary>Avançado · capital, risco e taxas</summary>
+<div class="inside"><p class="muted small">Esses números são estimativas editáveis, não taxas verificadas da sua Binance. Os custos são cobrados sobre o valor total da posição, não apenas sobre a margem.</p>
+<div class="fields">
+<label class="field"><span>Capital (USDT)</span><input type="number" id="equity" min="1" step="1" value="200" inputmode="decimal"></label>
+<label class="field"><span>Risco máximo (%)</span><input type="number" id="risk" min=".1" max="10" step=".1" value="1" inputmode="decimal"></label>
+<label class="field"><span>Alavancagem para estimar margem</span><input type="number" id="leverage" min="1" max="125" value="5" inputmode="numeric"></label>
+<label class="field"><span>Taxa por lado (%)</span><input type="number" id="fee" min="0" max="1" step=".01" value=".05" inputmode="decimal"></label>
+<label class="field"><span>Slippage por lado (%)</span><input type="number" id="slip" min="0" max="2" step=".01" value=".02" inputmode="decimal"></label>
+</div>
+<div class="note spaced">O risco calculado é estimado. Stops podem executar pior que o planejado; alavancagem pode produzir liquidação antes do stop.</div>
+</div></details>
+<footer>CRYPTO COMPASS v0.5 · Edição ChatGPT · Somente análise e simulação. Não há garantia de ganhos ou execução de ordens.</footer>
+</main>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const ms=300000;
+let current=[],asset='XRPUSDT',socket=null,timer=null,request=null,dataAt=0,chosenDays=7,testing=false,historyAbort=null,widgetLoaded=false;const historyCache=new Map();
+const money=n=>Number.isFinite(n)?'$ '+n.toLocaleString('en-US',{minimumFractionDigits:n<5?4:2,maximumFractionDigits:n<5?5:2}):'—';
+const num=n=>Number(n).toLocaleString('pt-BR',{maximumFractionDigits:2});
+const pct=n=>Number.isFinite(n)?num(n*100)+'%':'—';
+const fmtR=n=>Number.isFinite(n)?num(n)+' R':'—';
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+function settings(){return {equity:Number($('equity').value),risk:Number($('risk').value)/100,lev:Number($('leverage').value),fee:Number($('fee').value)/100,slip:Number($('slip').value)/100}}
+function validSettings(s){return s.equity>0&&s.risk>0&&s.risk<=.1&&s.lev>=1&&s.lev<=125&&s.fee>=0&&s.fee<=.01&&s.slip>=0&&s.slip<=.02&&Object.values(s).every(Number.isFinite)}
+function toCandles(rows){return rows.map(r=>({t:+r[0],o:+r[1],h:+r[2],l:+r[3],c:+r[4],v:+r[5],end:+r[6]})).filter(z=>Object.values(z).every(Number.isFinite)&&z.o>0&&z.l>0&&z.h>=Math.max(z.o,z.c)&&z.l<=Math.min(z.o,z.c))}
+async function getBars(symbol,limit,endTime,signal){const u='https://fapi.binance.com/fapi/v1/klines?symbol='+encodeURIComponent(symbol)+'&interval=5m&limit='+limit+(endTime?'&endTime='+endTime:'');const res=await fetch(u,{cache:'no-store',signal});if(!res.ok)throw Error('Binance respondeu HTTP '+res.status);const body=await res.json();if(!Array.isArray(body))throw Error('Formato inesperado de candles');return toCandles(body)}
+function indicator(c){const len=c.length,e9=[],e21=[],e50=[],rsi=[],atr=[],vwap=[],volume=[];
+let avgG=0,avgL=0,prevATR=0,pv=0,sumV=0,sumVol=0,avg9=0,avg21=0,avg50=0;
+const q9=2/10,q21=2/22,q50=2/51;
+for(let i=0;i<len;i++){const z=c[i];avg9=i?avg9+q9*(z.c-avg9):z.c;avg21=i?avg21+q21*(z.c-avg21):z.c;avg50=i?avg50+q50*(z.c-avg50):z.c;e9.push(avg9);e21.push(avg21);e50.push(avg50);
+const d=i?z.c-c[i-1].c:0,g=Math.max(0,d),l=Math.max(0,-d);
+if(i<=7){avgG+=g;avgL+=l;if(i===7){avgG/=7;avgL/=7}}else{avgG=(avgG*6+g)/7;avgL=(avgL*6+l)/7}
+rsi.push(i<7?NaN:avgL===0?(avgG===0?50:100):100-100/(1+avgG/avgL));
+const tr=i?Math.max(z.h-z.l,Math.abs(z.h-c[i-1].c),Math.abs(z.l-c[i-1].c)):(z.h-z.l);
+if(i<=14){prevATR+=tr;if(i===14)prevATR/=15}else prevATR=(prevATR*13+tr)/14;
+atr.push(i<14?NaN:prevATR);
+const typ=(z.h+z.l+z.c)/3;pv+=typ*z.v;sumV+=z.v;if(i>=60){const o=c[i-60];pv-=((o.h+o.l+o.c)/3)*o.v;sumV-=o.v}vwap.push(i>=59&&sumV>0?pv/sumV:NaN);
+sumVol+=z.v;if(i>=20)sumVol-=c[i-20].v;volume.push(i>=20&&sumVol>0?z.v/(Math.max(.00000001,(sumVol-z.v+c[i-20].v)/20)):NaN);
+}
+return {e9,e21,e50,rsi,atr,vwap,volume};
+}
+
+const NAMES=['Pullback EMA 9/21','Rompimento e volume','Reação na VWAP','Suporte e resistência','Bollinger + RSI'];
+function atSignal(c,k,i,s){
+ const blank=NAMES.map(name=>({name,status:'NEUTRAL',why:'Aguardando histórico.'}));
+ if(i<115)return {side:'WAIT',why:'Poucos candles fechados.',methods:blank,counts:{LONG:0,SHORT:0},trend:'—',regime:'—',vol:NaN};
+ const z=c[i],p=c[i-1],atr=k.atr[i],vw=k.vwap[i],r=k.rsi[i],e9=k.e9[i],e21=k.e21[i],e50=k.e50[i];
+ if(!Number.isFinite(atr)||atr<=0||!Number.isFinite(vw))return {side:'WAIT',why:'Indicadores insuficientes.',methods:blank,counts:{LONG:0,SHORT:0},regime:'—',vol:NaN};
+ const avg=c.slice(i-20,i).reduce((a,b)=>a+b.v,0)/20,vol=avg?z.v/avg:0;
+ const slope=(e21-k.e21[i-6])/atr,spread=(e21-e50)/atr;
+ let regime=(Math.abs(slope)<.48&&Math.abs(spread)<.95)?'LATERAL':(slope>.26&&e9>e21&&e21>e50)?'ALTA':(slope<-.26&&e9<e21&&e21<e50)?'BAIXA':'TRANSIÇÃO';
+ const up=regime==='ALTA',down=regime==='BAIXA',range=regime==='LATERAL',bull=z.c>z.o&&z.c>p.c,bear=z.c<z.o&&z.c<p.c;
+ const m=NAMES.map(name=>({name,status:'NEUTRAL',why:'Sem sinal confirmado.'}));
+ function mark(j,status,why){m[j]={name:NAMES[j],status,why}}
+ const from=c.slice(i-3,i+1),touchUp=from.some((b,j)=>b.l<=k.e9[i-3+j]+.20*atr&&b.h>=k.e21[i-3+j]-.2*atr),touchDown=from.some((b,j)=>b.h>=k.e9[i-3+j]-.20*atr&&b.l<=k.e21[i-3+j]+.2*atr);
+ if(up&&touchUp&&z.c>e9&&bull&&r>45&&r<78)mark(0,'LONG','Retomada de alta após tocar a região das EMAs.');
+ else if(down&&touchDown&&z.c<e9&&bear&&r>22&&r<55)mark(0,'SHORT','Retomada de baixa após tocar as EMAs.');
+ else if((up&&touchUp)||(down&&touchDown))mark(0,'WAIT','Aguardando reação nas médias.');
+ const hi=Math.max(...c.slice(i-12,i).map(v=>v.h)),lo=Math.min(...c.slice(i-12,i).map(v=>v.l));
+ const res=Math.max(...c.slice(i-13,i-1).map(v=>v.h)),sup=Math.min(...c.slice(i-13,i-1).map(v=>v.l));
+ const brokeUp=p.c>res&&z.l<=res+.3*atr&&z.c>res&&bull,brokeDown=p.c<sup&&z.h>=sup-.3*atr&&z.c<sup&&bear;
+ const freshUp=z.c>hi&&vol>=1.4&&bull,freshDown=z.c<lo&&vol>=1.4&&bear;
+ if((up||regime==='TRANSIÇÃO')&&(freshUp||brokeUp)&&vol>1.1)mark(1,'LONG','Rompimento de resistência com volume.');
+ else if((down||regime==='TRANSIÇÃO')&&(freshDown||brokeDown)&&vol>1.1)mark(1,'SHORT','Rompimento de suporte com volume.');
+ else if(freshUp||freshDown||brokeUp||brokeDown)mark(1,'WAIT','Rompimento sem todas as confirmações.');
+ if(up&&vw>k.vwap[i-3]&&z.l<=vw+.6*atr&&z.c>vw&&bull&&r>47)mark(2,'LONG','Reação acima da VWAP com tendência.');
+ else if(down&&vw<k.vwap[i-3]&&z.h>=vw-.6*atr&&z.c<vw&&bear&&r<53)mark(2,'SHORT','Reação abaixo da VWAP com tendência.');
+ else if((up||down)&&Math.abs(z.c-vw)<.75*atr)mark(2,'WAIT','Próximo à VWAP, sem reação confirmada.');
+ const prior=c.slice(i-28,i),support=Math.min(...prior.map(v=>v.l)),resistance=Math.max(...prior.map(v=>v.h));
+ if(range&&resistance-support>1.8*atr){
+ if(z.l<=support+.3*atr&&z.c>support+.2*atr&&bull&&r<58)mark(3,'LONG','Reação no suporte da faixa lateral.');
+ else if(z.h>=resistance-.3*atr&&z.c<resistance-.2*atr&&bear&&r>42)mark(3,'SHORT','Rejeição na resistência da faixa lateral.');
+ else if(z.l<support+.6*atr||z.h>resistance-.6*atr)mark(3,'WAIT','Próximo ao suporte ou resistência.');
+ }
+ const last20=c.slice(i-19,i+1),mean=last20.reduce((a,v)=>a+v.c,0)/20,sd=Math.sqrt(last20.reduce((a,v)=>a+(v.c-mean)**2,0)/20),lower=mean-2*sd,upper=mean+2*sd;
+ if(range&&z.l<=lower+.2*atr&&bull&&r<=43)mark(4,'LONG','Reação na banda inferior com RSI baixo.');
+ else if(range&&z.h>=upper-.2*atr&&bear&&r>=57)mark(4,'SHORT','Reação na banda superior com RSI alto.');
+ else if(range&&(z.l<=lower+.55*atr||z.h>=upper-.55*atr))mark(4,'WAIT','Próximo das bandas, aguardando reação.');
+ const counts={LONG:m.filter(x=>x.status==='LONG').length,SHORT:m.filter(x=>x.status==='SHORT').length};
+ let side=counts.LONG>=2&&counts.SHORT===0?'LONG':counts.SHORT>=2&&counts.LONG===0?'SHORT':'WAIT';
+ let why=counts.LONG&&counts.SHORT?'Sinais contrários: entrada bloqueada.':'Menos de duas confirmações na mesma direção.';
+ const common={side,why,methods:m,counts,regime,trend:regime,vol,rsi:r,atr,price:z.c};
+ if(side==='WAIT')return common;
+ const stopDist=(range?1.2:1.4)*atr,targetMult=range?1.45:1.7,costR=2*(s.fee+s.slip)*z.c/stopDist;
+ if(!Number.isFinite(costR)||costR>.65)return {...common,side:'WAIT',why:'Confirmação '+counts[side]+'/5, mas custos estimados altos ('+num(costR)+' R).',blockedByCost:true};
+ return {...common,stopDist,targetMult,stop:side==='LONG'?z.c-stopDist:z.c+stopDist,target:side==='LONG'?z.c+targetMult*stopDist:z.c-targetMult*stopDist,why:counts[side]+' métodos confirmaram '+side+'. Nenhum sinal contrário e custos dentro do limite.'}
+}
+function methodsUI(a){const el=$('methods');el.textContent='';for(const m of a?.methods||[]){const row=document.createElement('div');row.className='method';const left=document.createElement('div');const t=document.createElement('b');t.textContent=m.name;const p=document.createElement('div');p.className='detail';p.textContent=m.why;left.append(t,p);const badge=document.createElement('span');badge.className='state '+m.status;badge.textContent=m.status==='NEUTRAL'?'NEUTRO':m.status==='WAIT'?'AGUARDAR':m.status;row.append(left,badge);el.append(row)}}
+
+function notify(text,level){$('connection').textContent=text;$('dot').className='dot '+(level||'')}
+function waiting(message){$('signal').textContent='AGUARDAR';$('signal').className='tag wait';$('statusTitle').textContent='Sem entrada validada';$('reason').textContent=message;$('plan').hidden=true;$('noPlan').hidden=false}
+function show(){if(current.length<115){waiting('Ainda não há candles fechados suficientes.');return}const last=current[current.length-1];$('price').textContent=money(last.c);$('lastCandle').textContent='Candle fechado às '+new Date(last.end).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});const stale=Date.now()-last.end>720000;const s=settings(),ind=indicator(current),a=atSignal(current,ind,current.length-1,s);$('regime').textContent=a.regime||'—';$('confluence').textContent=(a.counts?.LONG||0)+' LONG · '+(a.counts?.SHORT||0)+' SHORT';methodsUI(a);$('trend').textContent=a.trend||'—';$('volume').textContent=Number.isFinite(a.vol)?num(a.vol)+'×':'—';if(stale){waiting('Último candle fechado está atrasado. Aguarde a reconexão ou toque em Atualizar análise.');$('interpret').textContent='Não use sinais antigos de 5 minutos.';return}
+if(!validSettings(s)){waiting('Confira os valores da seção Avançado.');return}
+$('reason').textContent=a.why;$('interpret').textContent='RSI(7): '+(Number.isFinite(a.rsi)?num(a.rsi):'—')+'  · Cenário: '+a.trend+' · Volume: '+num(a.vol)+'×. A entrada é calculada apenas no fechamento do candle.';
+if(a.side==='WAIT'){waiting(a.why);return}
+$('signal').textContent=a.side;$('signal').className='tag '+(a.side==='LONG'?'long':'short');$('statusTitle').textContent=a.side==='LONG'?'Possível alta':'Possível queda';
+const lossFrac=a.stopDist/a.price+2*(s.fee+s.slip),notional=Math.min(s.equity*s.lev,s.equity*s.risk/lossFrac);
+const deltaStop=notional*lossFrac,deltaTarget=notional*(a.targetMult*a.stopDist/a.price-2*(s.fee+s.slip));
+$('entryPlan').textContent=money(a.price);$('stopPlan').textContent=money(a.stop);$('targetPlan').textContent=money(a.target);
+$('marginPlan').textContent=money(notional/s.lev)+' (a '+num(s.lev)+'×)';
+$('lossPlan').textContent='−'+money(deltaStop);$('gainPlan').textContent=deltaTarget>=0?'+'+money(deltaTarget):'−'+money(Math.abs(deltaTarget));
+$('noPlan').hidden=true;$('plan').hidden=false;
+}
+function stopSocket(){if(timer){clearTimeout(timer);timer=null}const old=socket;socket=null;if(old){old.onclose=null;old.onmessage=null;old.close()}}
+async function refresh(){const symbol=asset;stopSocket();if(request)request.abort();request=new AbortController();const signal=request.signal;$('refresh').disabled=true;notify('Buscando candles…');try{const bars=(await getBars(symbol,600,null,signal)).filter(z=>z.end<=Date.now());if(symbol!==asset||signal.aborted)return;if(bars.length<115)throw Error('Poucos candles fechados retornados');current=bars;dataAt=Date.now();show();notify('Histórico atualizado; conectando…');stream(symbol)}catch(e){if(signal.aborted)return;current=[];waiting('Não foi possível carregar os candles. A análise foi suspensa.');$('price').textContent='—';$('trend').textContent='—';$('volume').textContent='—';notify('Dados indisponíveis','bad');$('lastCandle').textContent=e.message}finally{if(symbol===asset)$('refresh').disabled=false}}
+function stream(symbol){if(!('WebSocket' in window)){notify('Streaming indisponível');return}let attempt=0;
+function connect(){if(symbol!==asset)return;let w;try{w=new WebSocket('wss://fstream.binance.com/ws/'+symbol.toLowerCase()+'@kline_5m')}catch(e){notify('Streaming indisponível','bad');return}socket=w;
+w.onopen=()=>{if(w!==socket)return;attempt=0;notify('Conectado · Binance Futures','live')};
+w.onmessage=e=>{if(w!==socket||symbol!==asset)return;let d;try{d=JSON.parse(e.data)}catch{return}if(d.e!=='kline'||!d.k||!d.k.x||d.k.s!==asset)return;
+const k=d.k,bar={t:+k.t,o:+k.o,h:+k.h,l:+k.l,c:+k.c,v:+k.v,end:+k.T};
+if(!Object.values(bar).every(Number.isFinite)||bar.l<=0||bar.h<Math.max(bar.o,bar.c)||bar.l>Math.min(bar.o,bar.c))return;
+const previous=current.at(-1);if(!previous||bar.t>previous.t)current.push(bar);else if(bar.t===previous.t)current[current.length-1]=bar;else return;
+current=current.slice(-600);dataAt=Date.now();show();
+};
+w.onerror=()=>{if(w===socket)notify('Conexão instável','bad')};
+w.onclose=()=>{if(w!==socket||symbol!==asset)return;socket=null;attempt++;notify('Reconectando…','bad');timer=setTimeout(()=>{if(symbol===asset)refresh()},Math.min(30000,3000*Math.pow(2,Math.min(4,attempt))))}
+}connect()}
+function showTV(){if(widgetLoaded)return;widgetLoaded=true;const host=$('tv');host.textContent='';const wrap=document.createElement('div');wrap.className='tradingview-widget-container';wrap.style.cssText='height:100%;width:100%';const el=document.createElement('div');el.className='tradingview-widget-container__widget';el.style.cssText='height:100%;width:100%';wrap.appendChild(el);host.appendChild(wrap);const script=document.createElement('script');script.async=true;script.type='text/javascript';script.src='https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+const sym=asset==='XRPUSDT'?'BINANCE:XRPUSDT.P':'BINANCE:SOLUSDT.P';
+script.textContent=JSON.stringify({autosize:true,symbol:sym,interval:'5',timezone:'America/Sao_Paulo',theme:'dark',style:'1',locale:'br',hide_side_toolbar:true,allow_symbol_change:false,save_image:false,support_host:'https://www.tradingview.com'});
+wrap.appendChild(script);$('tvlink').href='https://www.tradingview.com/chart/?symbol='+encodeURIComponent(sym);
+}
+function updateTV(){widgetLoaded=false;if($('chartToggle').open)showTV();else $('tv').innerHTML='<p class="tvmsg">Abra esta seção para carregar o gráfico.</p>'}
+
+function replay(c,s,days){
+ const ind=indicator(c),tr=[],cut=c.at(-1).t-days*86400000;let skipped=0,conflicts=0,next=115;
+ for(let i=115;i<c.length-9;i++){if(c[i].t<cut||i<next)continue;const a=atSignal(c,ind,i,s);
+ if(a.side==='WAIT'){if(a.blockedByCost)skipped++;if(a.counts?.LONG&&a.counts?.SHORT)conflicts++;continue}
+ const entry=c[i+1].o,dist=a.stopDist,sgn=a.side==='LONG'?1:-1,stop=entry-sgn*dist,target=entry+sgn*a.targetMult*dist;
+ if(entry<=0||stop<=0||target<=0)continue;
+ let out=c[i+8].c,lastIndex=i+8,why='Tempo (40m)';
+ for(let j=i+1;j<=i+8;j++){const b=c[j],hitStop=sgn===1?b.l<=stop:b.h>=stop,hitTarget=sgn===1?b.h>=target:b.l<=target;
+ if(hitStop){out=sgn===1?Math.min(stop,b.o):Math.max(stop,b.o);why='Stop';lastIndex=j;break}
+ if(hitTarget){out=target;why='Alvo';lastIndex=j;break}}
+ const gross=sgn*(out-entry)/dist,cost=(s.fee+s.slip)*(entry+out)/dist,net=gross-cost;
+ tr.push({t:c[i+1].t,side:a.side,why,gross,net,methods:a.methods.filter(m=>m.status===a.side).map(m=>m.name),confirmations:a.counts[a.side]});next=lastIndex+1;i=lastIndex
+ }
+ return {tr,skipped,conflicts}
+}
+
+function stats(tr){const n=tr.length;let grossWin=0,netWin=0,total=0,peak=0,dd=0,profits=0,losses=0;
+for(const t of tr){if(t.gross>0)grossWin++;if(t.net>0){netWin++;profits+=t.net}else losses+=Math.abs(t.net);total+=t.net;peak=Math.max(peak,total);dd=Math.max(dd,peak-total)}
+return {n,pre:n?grossWin/n:NaN,post:n?netWin/n:NaN,total,dd,pf:losses?profits/losses:profits?Infinity:NaN}}
+async function history(days,symbol,signal,progress){const now=Date.now(),cutoff=now-(days*288+150)*ms;let end=now,all=[],loops=0;
+while(end>cutoff&&loops<36){if(signal.aborted)throw new DOMException('Cancelado','AbortError');const bars=await getBars(symbol,1500,end,signal);if(!bars.length)break;all.push(...bars);end=bars[0].t-1;loops++;progress(Math.min(.96,(now-end)/(now-cutoff)));if(end<=cutoff)break;await wait(110)}
+const clean=new Map();for(const b of all)if(b.end<=now&&b.t>=cutoff)clean.set(b.t,b);
+const sorted=[...clean.values()].sort((a,b)=>a.t-b.t);return sorted}
+async function testHistory(){if(testing)return;const s=settings();if(!validSettings(s)){$('testMessage').textContent='Confira capital, risco, alavancagem e taxas em Avançado.';return}
+testing=true;const sym=asset,days=chosenDays;$('results').hidden=true;$('test').disabled=true;$('progress').hidden=false;$('bar').style.width='0%';
+historyAbort=new AbortController();const controller=historyAbort;
+try{$('testMessage').textContent='Baixando candles fechados… Pode demorar, especialmente em 30 dias.';const key=sym+'_'+days,cached=historyCache.get(key),c=cached&&Date.now()-cached.when<120000?cached.bars:await history(days,sym,controller.signal,f=>{$('bar').style.width=Math.round(f*100)+'%';$('testMessage').textContent='Baixando histórico… '+Math.round(f*100)+'%'});if(!cached||Date.now()-cached.when>=120000){historyCache.set(key,{bars:c,when:Date.now()});if(historyCache.size>3)historyCache.delete(historyCache.keys().next().value)}
+if(sym!==asset){$('testMessage').textContent='A moeda mudou. Faça um novo teste.';return}
+if(c.length<days*275+130){$('testMessage').textContent='Histórico incompleto ('+num(c.length)+' candles). Não vou apresentar um resultado que pareça representar '+days+' dia(s). Tente um período menor.';return}
+let gaps=0;for(let i=1;i<c.length;i++)if(c[i].t-c[i-1].t!==300000)gaps++;if(gaps>2){$('testMessage').textContent='Histórico contém '+gaps+' intervalos sem candles. Replay suspenso para evitar conclusões enganosas.';return}
+$('testMessage').textContent='Calculando as operações…';await wait(30);
+const result=replay(c,s,days),all=stats(result.tr),split=c.at(-1).t-days*86400000*.3, recent=stats(result.tr.filter(x=>x.t>=split));
+$('trades').textContent=num(all.n);$('winNet').textContent=pct(all.post);$('winGross').textContent=pct(all.pre);
+$('netR').textContent=fmtR(all.total);$('netR').className=all.total>=0?'green':'red';
+$('blockedCost').textContent=num(result.skipped);$('drawdown').textContent=fmtR(all.dd);$('profitFactor').textContent=Number.isFinite(all.pf)?num(all.pf):'—';
+$('validation').textContent=recent.n+' operações · '+pct(recent.post)+' · '+fmtR(recent.total);
+const msg=all.n<30?'Amostra pequena: '+all.n+' operações ainda não permitem avaliar a estratégia com confiança.':all.total<=0?'A estratégia teve resultado líquido negativo nesse período. Não a utilize como sinal comprovado.':'Resultado positivo apenas neste período; não garante desempenho futuro.';
+$('verdict').textContent=msg+' '+result.skipped+' oportunidades foram descartadas por custos elevados.';
+$('rows').innerHTML='';result.tr.slice(-8).reverse().forEach(x=>{const row=document.createElement('tr');[new Date(x.t).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),x.side,x.confirmations+'/5',x.why,fmtR(x.gross),fmtR(x.net)].forEach(v=>{const cell=document.createElement('td');cell.textContent=v;row.appendChild(cell)});$('rows').appendChild(row)});
+$('results').hidden=false;$('bar').style.width='100%';$('testMessage').textContent=num(c.length)+' candles da Binance Futures · '+days+' dia(s) · custos: '+num((s.fee+s.slip)*200)+'% ida e volta · resultado histórico, não previsão.';
+}catch(e){if(e.name==='AbortError')$('testMessage').textContent='Teste interrompido. Selecione a moeda e teste novamente.';else $('testMessage').textContent='Não foi possível completar o histórico: '+e.message+'. Nenhum resultado parcial foi apresentado.'}
+finally{testing=false;$('test').disabled=false;$('progress').hidden=true;historyAbort=null}
+}
+$('refresh').addEventListener('click',refresh);
+$('asset').addEventListener('change',()=>{asset=$('asset').value;if(historyAbort)historyAbort.abort();updateTV();current=[];$('price').textContent='—';$('trend').textContent='—';$('volume').textContent='—';waiting('Mudando a moeda…');refresh()});
+$('periods').addEventListener('click',e=>{const btn=e.target.closest('[data-days]');if(!btn||testing)return;chosenDays=Number(btn.dataset.days);for(const b of $('periods').querySelectorAll('button'))b.classList.toggle('selected',b===btn)});
+$('test').addEventListener('click',testHistory);
+$('chartToggle').addEventListener('toggle',()=>{if($('chartToggle').open)showTV()});
+for(const id of ['equity','risk','leverage','fee','slip'])$(id).addEventListener('input',()=>{if(current.length>65)show();if(!$('results').hidden){$('testMessage').textContent='Custos ou risco alterados. Rode o Replay novamente.';$('results').hidden=true}});
+setInterval(()=>{if(current.length>65)show();if(socket&&socket.readyState===1&&Date.now()-dataAt>720000){notify('Sem candles recentes · atualize','bad')}},20000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!current.length||Date.now()-dataAt>420000))refresh()});
+refresh();
+})();
+</script>
+</body>
+</html>
