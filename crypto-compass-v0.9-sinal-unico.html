@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#091120">
+<title>Crypto Compass v0.9 · Uma confirmação</title>
+<style>
+:root{color-scheme:dark;--bg:#08101e;--panel:#101e32;--muted:#a5b4c8;--edge:#273951;--ink:#f0f6ff;--green:#48e0ac;--red:#ff8599;--yellow:#ffd17d;--blue:#7ebdff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top right,#162e4d 0,transparent 42%),var(--bg);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:840px;margin:0 auto;padding:18px 14px 74px}header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:22px}
+.brand{display:flex;align-items:center;gap:12px}.mark{background:linear-gradient(135deg,#33e8ba,#479cff);color:#051426;width:43px;height:43px;display:grid;place-items:center;border-radius:13px;font-weight:900;font-size:26px}
+.brand strong{display:block;font-size:20px;line-height:1.2}.brand small,.sub,.hint{display:block;color:var(--muted);font-size:12px}.pill{font-size:11px;font-weight:800;letter-spacing:.04em;border:1px solid var(--edge);border-radius:30px;padding:6px 10px;color:var(--muted);white-space:nowrap}
+h1{font-size:24px;line-height:1.2;margin:0 0 7px}h2{font-size:17px;margin:0 0 11px}p{margin:6px 0 12px}.muted{color:var(--muted)}.small{font-size:12px}.card{background:linear-gradient(155deg,rgba(19,37,62,.96),rgba(12,23,40,.98));border:1px solid var(--edge);border-radius:19px;padding:19px;margin-top:15px;box-shadow:0 15px 48px #0002}
+.toolbar{display:grid;grid-template-columns:minmax(120px,1fr) minmax(130px,1fr);gap:10px;margin-top:16px}.toolbar .refresh{grid-column:1/-1}
+select,input,button{font:inherit;min-height:44px;border-radius:11px}select,input{width:100%;border:1px solid #374967;background:#0a1527;color:var(--ink);padding:10px 12px}
+input:focus,select:focus,button:focus-visible,summary:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+button{background:#182941;border:1px solid #35506c;color:var(--ink);padding:10px 14px;cursor:pointer;font-weight:750}
+button.primary{background:linear-gradient(110deg,#39d9b1,#73aaff);color:#071323;border:none}button[disabled]{opacity:.56;cursor:not-allowed}
+.statusline{margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted)}.dot{height:9px;width:9px;border-radius:50%;background:#71839b;display:inline-block}.dot.live{background:var(--green)}.dot.bad{background:var(--red)}
+.signal{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 13px}.signal strong{font-size:24px}.tag{padding:9px 14px;font-weight:850;border-radius:30px;font-size:14px}.tag.wait{color:var(--yellow);background:#ffce7c15;border:1px solid #94794d}.tag.long{color:var(--green);background:#38dfac18;border:1px solid #317967}.tag.short{color:var(--red);background:#ff859916;border:1px solid #a55b6a}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.metric{background:#0a1729;border:1px solid #24344b;border-radius:13px;padding:11px 10px}.metric small{color:var(--muted);font-size:11px;display:block}.metric strong{font-size:18px;display:block;font-variant-numeric:tabular-nums}.green{color:var(--green)}.red{color:var(--red)}.yellow{color:var(--yellow)}
+.note{background:#091a2b;border-left:3px solid #6c9dda;border-radius:7px;padding:10px 12px;font-size:12px;color:#c7d8eb}
+.summary{display:flex;justify-content:space-between;align-items:center;gap:10px}summary{list-style:none;cursor:pointer;font-weight:800;padding:5px 0}summary::-webkit-details-marker{display:none}summary::after{content:"⌄";float:right;color:var(--muted)}details[open]>summary::after{content:"⌃"}details.card{padding-top:13px}details .inside{padding-top:12px}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.field span{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}.field input,.field select{min-height:42px}
+.kv{display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid #24344b;padding:9px 0}.kv:last-child{border-bottom:0}.kv strong{text-align:right;font-variant-numeric:tabular-nums}.spaced{margin-top:15px}.progress{height:6px;background:#1a2c43;border-radius:5px;margin-top:12px;overflow:hidden}.progress>div{width:0;height:100%;background:var(--green);transition:width .2s}
+.columns{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat{border:1px solid var(--edge);border-radius:12px;padding:11px;background:#0b1729}.stat span{display:block;color:var(--muted);font-size:12px}.stat strong{font-size:23px}
+.segment{display:flex;gap:8px;flex-wrap:wrap}.segment button{flex:1;min-width:70px}.segment button.selected{background:#234d59;border-color:var(--green)}
+.tv{height:480px;width:100%;overflow:hidden;border-radius:12px;background:#0a1425}.tvmsg{font-size:12px;color:var(--muted);padding:12px}
+table{border-collapse:collapse;width:100%;font-size:12px;min-width:480px}th,td{padding:9px 7px;text-align:left;border-bottom:1px solid #24344b}th{color:var(--muted)}.tablewrap{overflow-x:auto}
+footer{padding-top:27px;color:var(--muted);font-size:11px;text-align:center}a{color:#96d1ff}
+@media(max-width:400px){h1{font-size:22px}.card{padding:14px}.metric strong{font-size:15px}.grid{gap:5px}.metric{padding:8px}.pill{font-size:10px}}
+.methods{display:grid;gap:8px}.method{background:#0b192a;border:1px solid var(--edge);border-radius:11px;padding:10px;display:flex;justify-content:space-between;align-items:center;gap:8px}.method .detail{font-size:12px;color:var(--muted)}.method .state{font-size:11px;font-weight:800;white-space:nowrap}.method .state.LONG{color:var(--green)}.method .state.SHORT{color:var(--red)}.method .state.WAIT{color:var(--yellow)}.method .state.NEUTRAL{color:var(--muted)}
+.quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:18px}.quick>div{padding:10px 12px;background:#0b1a2b;border:1px solid #2a405a;border-radius:11px}.quick span{display:block;color:var(--muted);font-size:11px}.quick strong{display:block;font-size:17px} @media(min-width:630px){.quick{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+.tiny{font-size:11px;color:var(--muted)}.risknote{color:var(--yellow)}.cols2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.method{padding:12px}.method b{font-size:13px}.method .detail{font-size:11px;line-height:1.35}.stat strong{overflow-wrap:anywhere}
+@media(max-width:400px){.cols2{grid-template-columns:1fr}}</style></head><body><main>
+<header><div class="brand"><span class="mark">◈</span><div><strong>Crypto Compass</strong><small>Estratégia adaptativa · Perpétuos</small></div></div><span class="pill">v0.9 · 1 CONFIRMAÇÃO</span></header>
+<h1>Uma confirmação já libera o sinal.</h1>
+<p class="muted">Nesta experiência, uma confirmação de qualquer dos cinco métodos libera uma entrada simulada no próximo minuto após o fechamento da vela 5m, sem aguardar gatilho adicional.</p>
+<div class="toolbar">
+<label class="field"><span>Criptomoeda</span><select id="asset"><option value="XRPUSDT">XRP / USDT</option><option value="SOLUSDT">SOL / USDT</option></select></label>
+<div class="field"><span>TradingView</span><input disabled value="5m · Binance Perpétuos"></div>
+<button id="refresh" class="primary refresh">↻ Atualizar análise</button>
+</div>
+<div class="statusline"><span class="dot" id="dot"></span><strong id="connection">Obtendo dados…</strong><span id="lastCandle">Aguardando candles fechados</span></div>
+<section class="card">
+<div class="signal"><div><div class="sub">DECISÃO DA ESTRATÉGIA</div><strong id="statusTitle">Aguardando…</strong></div><span id="signal" class="tag wait">AGUARDAR</span></div>
+<p id="reason" class="muted">Avaliando a tendência de 15 minutos e o último candle de 5 minutos.</p>
+<div class="grid">
+<div class="metric"><small>Contexto 15m</small><strong id="context">—</strong></div>
+<div class="metric"><small>Oportunidade 5m</small><strong id="setup">—</strong></div>
+<div class="metric"><small>Entrada após 5m</small><strong id="trigger">—</strong></div>
+</div>
+<div class="kv"><span>Último preço fechado (1m)</span><strong id="price">—</strong></div>
+<div class="kv"><span>ADX(14) 15m / força da tendência</span><strong id="adx15">—</strong></div>
+<div class="kv"><span>Volatilidade ATR(14) 5m</span><strong id="vola">—</strong></div>
+<div class="kv"><span>Estrutura de preço 5m</span><strong id="structure">—</strong></div>
+<div class="kv"><span>Filtros técnicos (somente diagnóstico)</span><strong id="filters">Aguardando dados</strong></div>
+<div class="note spaced" id="interpret">Um método confirmado basta, exceto quando houver sinais contrários simultâneos. Não espera confirmação posterior de 1 minuto. ADX, volatilidade e estrutura são informativos nesta experiência; risco e custos continuam obrigatórios.</div>
+</section>
+<section class="card"><h2>Os cinco métodos</h2><p class="muted small">O primeiro método confirmado num candle fechado de 5m basta. A análise de contexto 15m orienta quais métodos podem gerar sinais, mas não exige outra confirmação. Se houver sinais opostos, a decisão é AGUARDAR.</p><div id="methods" class="methods">Aguardando candles…</div></section>
+<section class="card"><h2>Plano teórico</h2>
+<div id="noPlan" class="muted">Nenhuma entrada candidata validada neste momento.</div>
+<div id="plan" hidden>
+<div class="grid">
+<div class="metric"><small>Entrada de referência</small><strong id="entryPlan">—</strong></div>
+<div class="metric"><small>Stop técnico</small><strong id="stopPlan">—</strong></div>
+<div class="metric"><small>Alvo dinâmico</small><strong id="targetPlan">—</strong></div></div>
+<div class="kv"><span>Perda no stop, custos incluídos</span><strong id="lossPlan" class="red">—</strong></div>
+<div class="kv"><span>Ganho no alvo, custos incluídos</span><strong id="gainPlan" class="green">—</strong></div>
+<div class="kv"><span>Relação lucro/perda líquida prevista</span><strong id="ratioPlan">—</strong></div>
+<div class="kv"><span>Margem estimada utilizada</span><strong id="usedMargin">—</strong></div>
+<div class="kv"><span>Posição nominal estimada</span><strong id="notional">—</strong></div></div>
+<p class="tiny risknote">Margem máxima por operação de US$ 150: o sistema pode usar menos margem para respeitar o limite estimado de perda. O alvo compensa os custos, mas não garante execução, lucro ou proteção contra liquidação e gaps. Não envia ordens.</p>
+</section>
+<section class="card">
+<div class="summary"><h2>Replay: uma confirmação imediata</h2><span class="pill">SIMULAÇÃO</span></div>
+<p class="muted small">Compara 0.8 original (duas confirmações + 1m) com uma confirmação imediata com filtros adicionais, e uma confirmação imediata sem os vetos técnicos. Em todos os modos: entrada apenas após fechamento da vela, limites financeiros e custos iguais.</p>
+<div class="segment" id="periods"><button type="button" data-days="1">1 dia</button><button type="button" data-days="7" class="selected">7 dias</button><button type="button" data-days="30">30 dias</button></div>
+<button id="test" class="primary spaced" style="width:100%">▶ Testar 1 confirmação</button>
+<div id="progress" class="progress" hidden><div id="bar"></div></div><p id="testMessage" class="tiny">Selecione um período para baixar dados reais de 1 minuto da Binance Futures.</p>
+<div id="results" hidden>
+<div class="columns">
+<div class="stat"><span>Operações</span><strong id="trades">—</strong></div>
+<div class="stat"><span>Operações lucrativas após custos</span><strong id="winNet">—</strong></div>
+<div class="stat"><span>Alvo técnico atingido</span><strong id="winTarget">—</strong></div>
+<div class="stat"><span>Resultado líquido</span><strong id="net">—</strong></div></div>
+<div class="note spaced" id="verdict">—</div>
+<div class="note spaced"><strong>Comparação no mesmo histórico</strong>
+<div class="kv"><span>0.8 original: 2 sinais + gatilho 1m + filtros</span><strong id="baseline">—</strong></div>
+<div class="kv"><span>1 sinal imediato + filtros técnicos</span><strong id="filtered">—</strong></div><div class="kv"><span>1 sinal imediato sem vetos técnicos</span><strong id="direct">—</strong></div>
+<p class="tiny">Os três modos podem ter operações e horários diferentes. Os custos e a margem máxima são iguais, e nenhum deles garante lucro.</p>
+</div>
+<div class="kv"><span>Bloqueios ADX (modo com filtros)</span><strong id="blockedAdx">—</strong></div>
+<div class="kv"><span>Bloqueios de volatilidade (modo com filtros)</span><strong id="blockedVol">—</strong></div>
+<div class="kv"><span>Bloqueios de estrutura (modo com filtros)</span><strong id="blockedStructure">—</strong></div>
+<div class="kv"><span>Resultado nos 30% mais recentes</span><strong id="recent">—</strong></div>
+<div class="kv"><span>Maior queda acumulada (USDT)</span><strong id="dd">—</strong></div>
+<div class="kv"><span>Fator de lucro</span><strong id="factor">—</strong></div>
+<div class="kv"><span>Entradas rejeitadas por risco/custos</span><strong id="rejected">—</strong></div>
+<div class="kv"><span>Motivos das rejeições</span><strong id="rejectionReasons">—</strong></div>
+<div class="kv"><span>Entradas sem histórico futuro suficiente</span><strong id="incomplete">—</strong></div>
+<div class="kv"><span>Margem média das operações</span><strong id="avgMargin">—</strong></div>
+<div class="kv"><span>Candles ambíguos: alvo e stop no mesmo minuto</span><strong id="ambiguous">—</strong></div>
+<div class="kv"><span>Saídas por invalidação / segurança</span><strong id="earlyExits">—</strong></div>
+<details class="spaced"><summary>Ver últimas operações</summary><div class="inside tablewrap"><table><thead><tr><th>Data</th><th>Direção</th><th>Métodos</th><th>Saída</th><th>Líquido</th></tr></thead><tbody id="rows"></tbody></table></div></details>
+</div></section>
+<details class="card" id="chartToggle" open><summary>Gráfico TradingView · perpétuos · período selecionável</summary>
+<div class="inside"><label class="field"><span>Tempo do gráfico visual</span><select id="tvInterval">
+<option value="1">1 minuto</option><option value="5" selected>5 minutos</option><option value="15">15 minutos</option><option value="60">1 hora</option>
+</select></label><p class="tiny">O período selecionado altera apenas o gráfico visual. O sinal automático é gerado por vela 5m fechada, com contexto 15m; a simulação usa dados 1m.</p>
+<p class="tiny">TradingView é apenas o gráfico visual. Os sinais e testes usam candles Binance USD-M Futures separadamente; não há integração com sua corretora ou marcações de sinais sobre as velas.</p>
+<div id="tv" class="tv"><p class="tvmsg">Carregando gráfico…</p></div><a id="tvlink" target="_blank" rel="noopener noreferrer" href="https://www.tradingview.com/">Abrir no TradingView</a></div>
+</details>
+<details class="card"><summary>Avançado · exposição e custos</summary>
+<div class="inside">
+<div class="fields">
+<label class="field"><span>Margem máxima por operação (USDT)</span><input id="margin" type="number" value="150" min="1" step="1" inputmode="decimal"></label>
+<label class="field"><span>Alavancagem (5x provisória)</span><input id="leverage" type="number" value="5" min="1" max="125" step="1" inputmode="numeric"></label>
+<label class="field"><span>Limite de perda estimada por operação (USDT)</span><input id="maxLoss" type="number" value="5" min=".1" max="500" step=".5" inputmode="decimal"></label>
+<label class="field"><span>Taxa por lado (%)</span><input id="fee" type="number" value=".05" min="0" max="1" step=".01" inputmode="decimal"></label>
+<label class="field"><span>Slippage estimado por lado (%)</span><input id="slip" type="number" value=".02" min="0" max="2" step=".01" inputmode="decimal"></label>
+</div>
+<p class="tiny risknote">Um único sinal não dispensa proteção financeira. Stop, custo e limite estimado de perda continuam obrigatórios. A perda real pode superar o limite; o aplicativo não envia ordens.</p>
+</div></details>
+<footer>CRYPTO COMPASS v0.9 EXPERIMENTAL · Somente análise e simulação · Não há garantia de lucros · Nenhuma ordem é executada.</footer>
+</main><script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id),minute=60000,day=86400000,WAIT=ms=>new Promise(r=>setTimeout(r,ms));
+let symbol='XRPUSDT',candles=[],socket=null,abort=null,replayAbort=null,replayWorking=false,daysChosen=7,lastFetched=0,widgetLoaded=false;
+const cached=new Map();
+const num=x=>Number(x).toLocaleString('pt-BR',{maximumFractionDigits:2}),pct=x=>Number.isFinite(x)?num(x*100)+'%':'—';
+const usd=x=>Number.isFinite(x)?(x<0?'−US$ ':'+US$ ')+num(Math.abs(x)):'—';
+const price=x=>Number.isFinite(x)?'$ '+Number(x).toLocaleString('en-US',{minimumFractionDigits:x<5?4:2,maximumFractionDigits:x<5?5:2}):'—';
+const names=['Pullback nas EMA 9/21','Rompimento com volume','Reação na VWAP','Suporte e resistência','Bollinger + RSI'];
+function params(){return {margin:+$('margin').value,lev:+$('leverage').value,maxLoss:+$('maxLoss').value,fee:+$('fee').value/100,slip:+$('slip').value/100}}
+function valid(s){return Object.values(s).every(Number.isFinite)&&s.margin>0&&s.lev>=1&&s.lev<=125&&s.maxLoss>0&&s.fee>=0&&s.fee<=.01&&s.slip>=0&&s.slip<=.02}
+function candlesFrom(rows){return rows.map(z=>({t:+z[0],o:+z[1],h:+z[2],l:+z[3],c:+z[4],v:+z[5],end:+z[6]})).filter(z=>Object.values(z).every(Number.isFinite)&&z.o>0&&z.c>0&&z.l>0&&z.h>=Math.max(z.o,z.c)&&z.l<=Math.min(z.o,z.c))}
+async function fetchBars(sym,count,end,signal){const u='https://fapi.binance.com/fapi/v1/klines?symbol='+encodeURIComponent(sym)+'&interval=1m&limit='+count+(end?'&endTime='+end:'');const res=await fetch(u,{cache:'no-store',signal});if(!res.ok)throw Error('Binance Futures HTTP '+res.status);const data=await res.json();if(!Array.isArray(data))throw Error('Resposta inesperada');return candlesFrom(data)}
+function aggregate(one,minutes){const ms=minutes*minute,output=[];let bucket=[],key=-1;
+function flush(){if(bucket.length!==minutes||bucket[0].t!==key)return;for(let k=1;k<minutes;k++)if(bucket[k].t!==bucket[0].t+k*minute)return;
+output.push({t:key,end:bucket.at(-1).end,o:bucket[0].o,c:bucket.at(-1).c,h:Math.max(...bucket.map(z=>z.h)),l:Math.min(...bucket.map(z=>z.l)),v:bucket.reduce((a,z)=>a+z.v,0)})}
+for(const z of one){const k=Math.floor(z.t/ms)*ms;if(k!==key){flush();key=k;bucket=[]}bucket.push(z)}flush();return output}
+function indicators(c){const k={e9:[],e21:[],e50:[],rsi:[],atr:[],vwap:[]},q9=2/10,q21=2/22,q50=2/51;let e9=0,e21=0,e50=0,g=0,l=0,a=0,pv=0,volume=0;
+for(let i=0;i<c.length;i++){const z=c[i];e9=i?e9+q9*(z.c-e9):z.c;e21=i?e21+q21*(z.c-e21):z.c;e50=i?e50+q50*(z.c-e50):z.c;k.e9.push(e9);k.e21.push(e21);k.e50.push(e50);
+const delta=i?z.c-c[i-1].c:0;
+if(i<=7){g+=Math.max(delta,0);l+=Math.max(-delta,0);if(i===7){g/=7;l/=7}}else{g=(g*6+Math.max(delta,0))/7;l=(l*6+Math.max(-delta,0))/7}
+k.rsi.push(i<7?NaN:l===0?(g===0?50:100):100-100/(1+g/l));
+const tr=i?Math.max(z.h-z.l,Math.abs(z.h-c[i-1].c),Math.abs(z.l-c[i-1].c)):z.h-z.l;
+if(i<14)a+=tr;else if(i===14)a=(a+tr)/15;else a=(a*13+tr)/14;
+k.atr.push(i<14?NaN:a);
+pv+=((z.h+z.l+z.c)/3)*z.v;volume+=z.v;if(i>=60){const old=c[i-60];pv-=((old.h+old.l+old.c)/3)*old.v;volume-=old.v}
+k.vwap.push(i>=59&&volume>0?pv/volume:NaN)}
+return k}
+
+// Wilder ADX 14: somente OHLC anteriores/atuais. Sem olhar candles futuros.
+function adx14(c){
+ const len=c.length,adx=new Array(len).fill(NaN),plusDI=new Array(len).fill(NaN),minusDI=new Array(len).fill(NaN);
+ if(len<29)return {adx,plusDI,minusDI};
+ const trs=[],pdm=[],mdm=[];
+ for(let i=1;i<len;i++){
+ const up=c[i].h-c[i-1].h,down=c[i-1].l-c[i].l;
+ trs[i]=Math.max(c[i].h-c[i].l,Math.abs(c[i].h-c[i-1].c),Math.abs(c[i].l-c[i-1].c));
+ pdm[i]=up>down&&up>0?up:0;mdm[i]=down>up&&down>0?down:0
+ }
+ let atr=0,plus=0,minus=0,smoothedDx=0;
+ for(let i=1;i<=14;i++){atr+=trs[i];plus+=pdm[i];minus+=mdm[i]}
+ const dxs=[];
+ for(let i=14;i<len;i++){
+ if(i>14){atr=atr-atr/14+trs[i];plus=plus-plus/14+pdm[i];minus=minus-minus/14+mdm[i]}
+ const p=atr>0?100*plus/atr:0,m=atr>0?100*minus/atr:0;
+ plusDI[i]=p;minusDI[i]=m;
+ const dx=(p+m)>0?100*Math.abs(p-m)/(p+m):0;dxs.push(dx);
+ if(i===27){smoothedDx=dxs.reduce((a,b)=>a+b,0)/14;adx[i]=smoothedDx}
+ else if(i>27){smoothedDx=(smoothedDx*13+dx)/14;adx[i]=smoothedDx}
+ }
+ return {adx,plusDI,minusDI}
+}
+// Estrutura por pivôs confirmados: mínimo de 2 velas à direita, logo não repinta passado.
+function structure5(c,i){
+ if(i<30)return {label:'INDEFINIDA',bias:'NONE'};
+ const highs=[],lows=[];
+ for(let j=Math.max(2,i-75);j<=i-2;j++){
+ const hi=c[j].h,lo=c[j].l;
+ if(hi>c[j-1].h&&hi>=c[j-2].h&&hi>c[j+1].h&&hi>=c[j+2].h)highs.push(hi);
+ if(lo<c[j-1].l&&lo<=c[j-2].l&&lo<c[j+1].l&&lo<=c[j+2].l)lows.push(lo);
+ }
+ if(highs.length<2||lows.length<2)return {label:'POUCOS PIVÔS',bias:'NONE'};
+ const hh=highs.at(-1)>highs.at(-2),hl=lows.at(-1)>lows.at(-2),lh=highs.at(-1)<highs.at(-2),ll=lows.at(-1)<lows.at(-2);
+ if(hh&&hl)return {label:'Topos e fundos ascendentes',bias:'UP'};
+ if(lh&&ll)return {label:'Topos e fundos descendentes',bias:'DOWN'};
+ return {label:'Estrutura mista/lateral',bias:'MIXED'}
+}
+// ATR percentual relativo à própria história recente de 5m. Janelas não usam futuro.
+function volatility5(c,k,i){
+ if(i<110||!Number.isFinite(k.atr[i])||c[i].c<=0)return {ok:false,reason:'Aquecimento da volatilidade',label:'—'};
+ const arr=[];for(let j=i-95;j<i;j++)if(Number.isFinite(k.atr[j])&&c[j].c>0)arr.push(k.atr[j]/c[j].c);
+ if(arr.length<80)return {ok:false,reason:'Histórico insuficiente',label:'—'};
+ arr.sort((a,b)=>a-b);const med=arr[Math.floor(arr.length/2)],now=k.atr[i]/c[i].c,r=med>0?now/med:0;
+ const ok=r>=.60&&r<=2.6;
+ return {ok,reason:!ok?(r<.6?'Mercado muito parado':'Volatilidade extrema'):'Faixa de volatilidade compatível',
+ label:num(now*100)+'% · '+num(r)+'× mediana',ratio:r,percent:now*100}
+}
+function extraFilters(regime,side,five,k5,i5,fifteen,k15,i15,a15){
+ if(side==='WAIT')return {ok:false,reason:'Sem confluência',which:'setup'};
+ const value=a15.adx[i15],p=a15.plusDI[i15],m=a15.minusDI[i15],str=structure5(five,i5),vol=volatility5(five,k5,i5);
+ const out={ok:true,which:null,reason:'Condições compatíveis',adx:value,plusDI:p,minusDI:m,structure:str,vol};
+ if(!Number.isFinite(value)){out.ok=false;out.which='ADX';out.reason='ADX incompleto';return out}
+ if(regime==='ALTA'||regime==='BAIXA'){
+ if(value<18||(regime==='ALTA'&&p<=m)||(regime==='BAIXA'&&m<=p)){out.ok=false;out.which='ADX';out.reason='ADX/DI não confirmam a força da tendência';return out}
+ }else if(regime==='LATERAL'&&value>27){out.ok=false;out.which='ADX';out.reason='ADX elevado para operar reversão em canal lateral';return out}
+ if(!vol.ok){out.ok=false;out.which='VOL';out.reason=vol.reason;return out}
+ if((side==='LONG'&&str.bias==='DOWN')||(side==='SHORT'&&str.bias==='UP')){out.ok=false;out.which='STRUCT';out.reason='Estrutura de topos/fundos contrária à operação';return out}
+ return out
+}
+
+function trend15(c,k,i){if(i<62)return 'INDEFINIDO';const d=(k.e21[i]-k.e21[i-3])/k.atr[i],sep=(k.e21[i]-k.e50[i])/k.atr[i];
+if(k.e21[i]>k.e50[i]&&c[i].c>k.e21[i]&&d>.07)return 'ALTA';
+if(k.e21[i]<k.e50[i]&&c[i].c<k.e21[i]&&d<-.07)return 'BAIXA';
+if(Math.abs(d)<.25&&Math.abs(sep)<1.1)return 'LATERAL';
+return 'TRANSIÇÃO'}
+function setup5(c,k,i,regime,minConfirmations=2){const states=names.map(name=>({name,status:'NEUTRO',why:'Sem sinal compatível.'}));const mark=(n,status,why)=>{states[n]={name:names[n],status,why}};
+const none=(why)=>({side:'WAIT',why,states,regime,confirmed:0,atr:k.atr[i]});
+if(i<65||!Number.isFinite(k.atr[i])||!Number.isFinite(k.vwap[i]))return none('Aguardando indicadores.');
+const z=c[i],p=c[i-1],atr=k.atr[i],bull=z.c>z.o&&z.c>p.c,bear=z.c<z.o&&z.c<p.c,volAvg=c.slice(i-20,i).reduce((a,z)=>a+z.v,0)/20,vol=volAvg?z.v/volAvg:0;
+const up=regime==='ALTA',down=regime==='BAIXA',range=regime==='LATERAL';
+if(up||down){
+const touched=c.slice(i-3,i+1).some((b,j)=>up?(b.l<=k.e9[i-3+j]+.3*atr&&b.h>=k.e21[i-3+j]-.2*atr):(b.h>=k.e9[i-3+j]-.3*atr&&b.l<=k.e21[i-3+j]+.2*atr));
+if(touched&&up&&z.c>k.e9[i]&&bull&&k.e9[i]>k.e21[i])mark(0,'LONG','Correção até EMAs e retomada.');
+else if(touched&&down&&z.c<k.e9[i]&&bear&&k.e9[i]<k.e21[i])mark(0,'SHORT','Correção até EMAs e retomada.');
+else if(touched)mark(0,'AGUARDAR','Falta confirmação da correção.');
+const breakoutUp=z.c>Math.max(...c.slice(i-9,i).map(b=>b.h))&&vol>=1.25&&bull;
+const breakoutDown=z.c<Math.min(...c.slice(i-9,i).map(b=>b.l))&&vol>=1.25&&bear;
+if(breakoutUp&&up)mark(1,'LONG','Rompimento de resistência com volume.');
+else if(breakoutDown&&down)mark(1,'SHORT','Rompimento de suporte com volume.');
+else if(breakoutUp||breakoutDown)mark(1,'AGUARDAR','Rompimento contra a tendência de 15m.');
+const vwap=k.vwap[i];
+if(up&&k.vwap[i]>k.vwap[i-3]&&z.c>vwap&&z.l<=vwap+.8*atr&&bull)mark(2,'LONG','Reação acima de VWAP crescente.');
+else if(down&&k.vwap[i]<k.vwap[i-3]&&z.c<vwap&&z.h>=vwap-.8*atr&&bear)mark(2,'SHORT','Reação abaixo de VWAP decrescente.');
+else if(Math.abs(z.c-vwap)<atr*.8)mark(2,'AGUARDAR','Aguardando confirmação na VWAP.')
+}
+if(range){const recent=c.slice(i-28,i),sup=Math.min(...recent.map(b=>b.l)),res=Math.max(...recent.map(b=>b.h));
+if(res-sup>atr*1.8){
+if(z.l<=sup+.35*atr&&z.c>sup+.25*atr&&bull)mark(3,'LONG','Reação no suporte.');
+else if(z.h>=res-.35*atr&&z.c<res-.25*atr&&bear)mark(3,'SHORT','Rejeição na resistência.');
+}
+const last=c.slice(i-19,i+1),mean=last.reduce((a,b)=>a+b.c,0)/20,sd=Math.sqrt(last.reduce((a,b)=>a+(b.c-mean)**2,0)/20);
+if(z.l<=mean-2*sd+.3*atr&&bull&&k.rsi[i]<48)mark(4,'LONG','Reação na banda inferior com RSI baixo.');
+else if(z.h>=mean+2*sd-.3*atr&&bear&&k.rsi[i]>52)mark(4,'SHORT','Reação na banda superior com RSI alto.');
+}
+const longs=states.filter(v=>v.status==='LONG').length,shorts=states.filter(v=>v.status==='SHORT').length;
+const side=longs>=minConfirmations&&shorts===0?'LONG':shorts>=minConfirmations&&longs===0?'SHORT':'WAIT';
+return {side,regime,states,atr,confirmed:side==='LONG'?longs:side==='SHORT'?shorts:0,why:side==='WAIT'?(longs&&shorts?'Compra e venda conflitantes no mesmo candle.':'Nenhum método confirmou o sinal neste candle.'):'Contexto '+regime.toLowerCase()+': '+(side==='LONG'?longs:shorts)+' método(s) confirmados. Não aguarda outro gatilho.'}
+}
+function trigger1(one,i,side){if(i<20)return false;const z=one[i],p=one[i-1],vol=one.slice(i-15,i).reduce((a,b)=>a+b.v,0)/15,volOK=z.v>=vol*.9;
+return volOK&&(side==='LONG'?z.c>z.o&&z.c>p.h:z.c<z.o&&z.c<p.l)}
+
+function pnl(entry,exit,side,s,qtyOverride){
+ const qty=qtyOverride===undefined?s.margin*s.lev/entry:qtyOverride,k=s.fee+s.slip,d=side==='LONG'?1:-1;
+ return qty*(d*(exit-entry)-k*(entry+exit))
+}
+function plan(entry,side,s,atr5,last5){
+ const fail=(why,reason)=>({ok:false,why,reason});
+ if(!(Number.isFinite(entry)&&entry>0&&Number.isFinite(atr5)&&atr5>0&&last5.length>=4&&valid(s)))return fail('Dados ou parâmetros insuficientes.','Dados');
+ const d=side==='LONG'?1:-1,k=s.fee+s.slip,part=last5.slice(-4);
+ const pivot=side==='LONG'?Math.min(...part.map(x=>x.l)):Math.max(...part.map(x=>x.h));
+ const distance=Math.max(.85*atr5,d*(entry-pivot)+.12*atr5);
+ if(!Number.isFinite(distance)||distance<=0||distance>3*atr5)return fail('Stop técnico muito distante da volatilidade atual.','Stop distante');
+ const stop=entry-d*distance;
+ if(stop<=0)return fail('Stop calculado fora dos preços válidos.','Preço inválido');
+ // Perda por unidade, com taxa/slippage estimados em ambos os lados.
+ const costAtStop=k*(entry+stop),riskPerUnit=distance+costAtStop;
+ if(!(riskPerUnit>0))return fail('Risco por unidade inválido.','Preço inválido');
+ // Usar a MENOR posição entre margem máxima e limite líquido de risco.
+ const qty=Math.min(s.margin*s.lev/entry,s.maxLoss/riskPerUnit);
+ if(!(qty>0&&Number.isFinite(qty))||qty*entry<10)return fail('Posição viável menor que US$ 10.','Posição insuficiente');
+ const minRR=1.25;
+ // Alvo mínimo para que recompensa líquida / perda líquida >= 1,25.
+ const requiredDist=(minRR*riskPerUnit+2*k*entry)/(1-d*k);
+ const targetDistance=Math.max(1.8*distance,requiredDist*1.005);
+ // Sem inventar alvos ilimitados apenas para mostrar uma entrada.
+ if(targetDistance>Math.min(3*distance,4.4*atr5))return fail('Custos altos: alvo necessário está longe demais da volatilidade recente.','Alvo/custos');
+ const target=entry+d*targetDistance;
+ if(!(target>0&&Number.isFinite(target)))return fail('Alvo inválido.','Preço inválido');
+ const loss=pnl(entry,stop,side,s,qty),gain=pnl(entry,target,side,s,qty),ratio=loss<0?gain/(-loss):NaN;
+ if(!(Number.isFinite(ratio)&&ratio>=minRR-1e-6&&gain>0&&loss<0&&-loss<=s.maxLoss+1e-6))return fail('A relação líquida não atende ao risco definido.','Risco/retorno');
+ return {ok:true,entry,stop,target,loss,gain,ratio,qty,notional:qty*entry,marginUsed:qty*entry/s.lev,
+   stopDistance:distance,targetDistance,riskCap:s.maxLoss};
+}
+
+function lastIndexAt(c,t){let lo=0,hi=c.length-1,ans=-1;while(lo<=hi){const mid=(lo+hi)>>1;if(c[mid].end<=t){ans=mid;lo=mid+1}else hi=mid-1}return ans}
+function statusUI(txt,cls){$('signal').textContent=txt;$('signal').className='tag '+cls}
+function waiting(reason){statusUI('AGUARDAR','wait');$('statusTitle').textContent='Sem entrada validada';$('reason').textContent=reason;$('plan').hidden=true;$('noPlan').hidden=false}
+function methodUI(states){const el=$('methods');el.textContent='';for(const st of states){const row=document.createElement('div');row.className='method';const left=document.createElement('div'),title=document.createElement('b'),details=document.createElement('div'),side=document.createElement('span');
+title.textContent=st.name;details.className='detail';details.textContent=st.why;left.append(title,details);side.className='state '+(st.status==='LONG'?'LONG':st.status==='SHORT'?'SHORT':st.status==='AGUARDAR'?'WAIT':'NEUTRAL');side.textContent=st.status;row.append(left,side);el.append(row)}}
+function evaluateLive(){if(candles.length<1030){waiting('Aguardando pelo menos 1.030 candles de 1 minuto para análise completa.');return}const one=candles,now=Date.now(),last=one.at(-1);$('lastCandle').textContent='Candle de 1m fechado às '+new Date(last.end).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});$('price').textContent=price(last.c);
+if(now-last.end>180000){waiting('Histórico de 1 minuto desatualizado. Atualize.');return}
+const s=params();if(!valid(s)){waiting('Verifique as configurações de margem, risco e taxas.');return}
+const f5=aggregate(one,5),f15=aggregate(one,15);if(f5.length<70||f15.length<65){waiting('Aguardando candles completos de 5m e 15m.');return}
+const k5=indicators(f5),k15=indicators(f15),five=f5.at(-1),i5=f5.length-1,i15=lastIndexAt(f15,five.end),regime=trend15(f15,k15,i15);
+const setup=setup5(f5,k5,i5,regime,1),a15=adx14(f15),extra=extraFilters(regime,setup.side,f5,k5,i5,f15,k15,i15,a15),viewVol=volatility5(f5,k5,i5),viewStr=structure5(f5,i5);$('adx15').textContent=Number.isFinite(a15.adx[i15])?num(a15.adx[i15])+' · '+(a15.adx[i15]<18?'fraco':a15.adx[i15]<25?'moderado':'forte'):'—';$('vola').textContent=viewVol.label;$('structure').textContent=viewStr.label;$('filters').textContent=setup.side==='WAIT'?'Sem sinal':extra.ok?'Compatíveis · informativo':'Alerta: '+extra.reason+' · sem veto';$('context').textContent=regime;$('setup').textContent=setup.side==='WAIT'?'AGUARDAR':setup.side+' '+setup.confirmed+'/5';methodUI(setup.states);
+// Nao usa gatilho posterior de 1 minuto. Sinal ao FECHAMENTO do candle de 5m.
+const age=last.end-five.end,fresh=age>=0&&age<=2*minute;
+$('trigger').textContent=setup.side==='WAIT'?'AGUARDAR':fresh?'LIBERADA':'EXPIRADA';
+if(setup.side==='WAIT'){waiting(setup.why);return}
+if(!fresh){waiting('Sinal expirado; aguarde uma nova confirmação 5m.');return}
+const p=plan(last.c,setup.side,s,setup.atr,f5.slice(0,i5+1));if(!p.ok){waiting('Gatilho encontrado, mas entrada rejeitada: '+p.why);return}
+statusUI(setup.side,setup.side==='LONG'?'long':'short');$('statusTitle').textContent=setup.side==='LONG'?'Compra candidata':'Venda candidata';
+$('reason').textContent='15m '+regime+' · '+setup.confirmed+' método(s) confirmados no 5m · pronto após fechamento da vela, sem aguardar gatilho 1m. Preço apenas de referência.';
+$('entryPlan').textContent=price(p.entry);$('stopPlan').textContent=price(p.stop);$('targetPlan').textContent=price(p.target);$('lossPlan').textContent=usd(p.loss);$('gainPlan').textContent=usd(p.gain);$('ratioPlan').textContent=num(p.ratio)+' : 1';$('usedMargin').textContent='US$ '+num(p.marginUsed);$('notional').textContent='US$ '+num(p.notional);
+$('plan').hidden=false;$('noPlan').hidden=true;
+$('interpret').textContent='O primeiro método confirmado libera sinal para operação simulada. ADX/ATR/estrutura não vetam este experimento, mas o limite financeiro de risco e os custos continuam obrigatórios.';
+}
+function haltSocket(){const w=socket;socket=null;if(w){w.onclose=null;w.onmessage=null;w.close()}}
+async function refresh(){const sym=symbol;haltSocket();if(abort)abort.abort();abort=new AbortController();$('refresh').disabled=true;$('connection').textContent='Baixando histórico 1m…';
+try{const b=(await fetchBars(sym,1500,null,abort.signal)).filter(x=>x.end<=Date.now());if(sym!==symbol||abort.signal.aborted)return;if(b.length<1030)throw Error('Histórico de 1m insuficiente');candles=b;lastFetched=Date.now();evaluateLive();openSocket(sym)}
+catch(e){if(abort.signal.aborted)return;candles=[];waiting('Não foi possível analisar: '+e.message);$('connection').textContent='Binance indisponível';$('dot').className='dot bad'}
+finally{if(sym===symbol)$('refresh').disabled=false}}
+function openSocket(sym){try{const w=new WebSocket('wss://fstream.binance.com/ws/'+sym.toLowerCase()+'@kline_1m');socket=w;
+w.onopen=()=>{if(w!==socket)return;$('connection').textContent='Conectado · Binance Futures';$('dot').className='dot live'};
+w.onmessage=e=>{if(w!==socket||sym!==symbol)return;let msg;try{msg=JSON.parse(e.data)}catch{return}
+const k=msg.k;if(!k||!k.x||k.s!==sym)return;const bar={t:+k.t,o:+k.o,h:+k.h,l:+k.l,c:+k.c,v:+k.v,end:+k.T};
+if(!Object.values(bar).every(Number.isFinite))return;
+const prev=candles.at(-1);if(bar.t===prev?.t)candles[candles.length-1]=bar;else if(!prev||bar.t>prev.t)candles.push(bar);else return;
+candles=candles.slice(-1500);lastFetched=Date.now();evaluateLive()};
+w.onerror=()=>{if(w===socket)$('connection').textContent='Conexão instável'};
+w.onclose=()=>{if(w!==socket)return;socket=null;$('connection').textContent='Sem streaming; atualize manualmente'}
+}catch(e){$('connection').textContent='Streaming indisponível'}}
+function showTV(){if(widgetLoaded)return;widgetLoaded=true;const host=$('tv');host.textContent='';const wrap=document.createElement('div'),inner=document.createElement('div'),scr=document.createElement('script');
+wrap.className='tradingview-widget-container';wrap.style.cssText='height:100%;width:100%';inner.className='tradingview-widget-container__widget';inner.style.cssText='height:100%;width:100%';wrap.append(inner);host.append(wrap);
+const sym=symbol==='XRPUSDT'?'BINANCE:XRPUSDT.P':'BINANCE:SOLUSDT.P';
+scr.async=true;scr.src='https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';scr.textContent=JSON.stringify({autosize:true,symbol:sym,interval:$('tvInterval').value,timezone:'America/Sao_Paulo',theme:'dark',locale:'br',style:'1',hide_side_toolbar:true,allow_symbol_change:false,support_host:'https://www.tradingview.com'});wrap.append(scr);
+$('tvlink').href='https://www.tradingview.com/chart/?symbol='+encodeURIComponent(sym)}
+function stats(tr){let win=0,hit=0,total=0,peak=0,dd=0,profit=0,loss=0,early=0;
+for(const t of tr){if(t.net>0){win++;profit+=t.net}else loss+=Math.abs(t.net);if(t.why==='Alvo')hit++;if(t.why==='Invalidação'||t.why==='Segurança 120m')early++;total+=t.net;peak=Math.max(peak,total);dd=Math.max(dd,peak-total)}
+return {n:tr.length,winRate:tr.length?win/tr.length:NaN,hit:tr.length?hit/tr.length:NaN,total,dd,pf:loss?profit/loss:profit?Infinity:NaN,early}}
+function backtest(one,s,days,useExtras=true,minConfirmations=2,waitTrigger=true){const f5=aggregate(one,5),f15=aggregate(one,15),k5=indicators(f5),k15=indicators(f15),k1=indicators(one),a15=useExtras?adx14(f15):null;
+const index=new Map(one.map((c,i)=>[c.t,i]));const trades=[];let rejected=0,ambiguous=0,until=-1,prepared=0,triggered=0,incomplete=0,marginSum=0;const rejectionReasons={},filterCounts={ADX:0,VOL:0,STRUCT:0};
+const cutoff=one.at(-1).t-days*day;
+for(let i=195;i<f5.length-1;i++){const candle=f5[i],at=candle.end+1;if(at<cutoff||at<=until)continue;
+const i15=lastIndexAt(f15,candle.end);if(i15<65)continue;const regime=trend15(f15,k15,i15),setup=setup5(f5,k5,i,regime,minConfirmations);if(setup.side==='WAIT')continue;prepared++;if(useExtras){const extra=extraFilters(regime,setup.side,f5,k5,i,f15,k15,i15,a15);if(!extra.ok){if(filterCounts[extra.which]!==undefined)filterCounts[extra.which]++;continue}}
+const first=index.get(at);if(first===undefined)continue;
+let eIndex=first;
+if(waitTrigger){let trig=-1;for(let j=first;j<first+5&&j+1<one.length;j++){if(one[j].t!==at+(j-first)*minute)break;if(trigger1(one,j,setup.side)){trig=j;break}}if(trig<0)continue;eIndex=trig+1}
+triggered++;if(eIndex>=one.length-120){incomplete++;continue}const entry=one[eIndex].o,p=plan(entry,setup.side,s,setup.atr,f5.slice(0,i+1));if(!p.ok){rejected++;rejectionReasons[p.reason]=(rejectionReasons[p.reason]||0)+1;continue}
+const d=setup.side==='LONG'?1:-1;let out=NaN,why='',exitIndex=-1,amb=false;
+for(let j=eIndex;j<Math.min(one.length,eIndex+120);j++){const b=one[j],stopHit=d===1?b.l<=p.stop:b.h>=p.stop,targetHit=d===1?b.h>=p.target:b.l<=p.target;
+if(stopHit&&targetHit){ambiguous++;amb=true}
+if(stopHit){out=d===1?Math.min(p.stop,b.o):Math.max(p.stop,b.o);why='Stop';exitIndex=j;break}
+if(targetHit){out=p.target;why='Alvo';exitIndex=j;break}
+// Invalidação técnica: candle fechado duas vezes do outro lado da EMA 21 do 1m, após 4 minutos.
+if(j>=eIndex+4&&j+1<one.length&&((d===1&&b.c<k1.e21[j]&&one[j-1].c<k1.e21[j-1])||(d===-1&&b.c>k1.e21[j]&&one[j-1].c>k1.e21[j-1]))){out=one[j+1].o;why='Invalidação';exitIndex=j+1;break}
+}
+if(!Number.isFinite(out)){exitIndex=eIndex+119;if(exitIndex>=one.length)continue;out=one[exitIndex].c;why='Segurança 120m'}
+if(!Number.isFinite(out))continue;const gross=p.qty*d*(out-entry),net=pnl(entry,out,setup.side,s,p.qty);marginSum+=p.marginUsed;
+trades.push({t:one[eIndex].t,side:setup.side,methods:setup.states.filter(x=>x.status===setup.side).map(x=>x.name),why,gross,net,amb,margin:p.marginUsed,nominal:p.notional,loss:p.loss,gain:p.gain});
+until=one[exitIndex].t;
+}
+return {trades,rejected,rejectionReasons,filterCounts,incomplete,averageMargin:trades.length?marginSum/trades.length:NaN,ambiguous,prepared,triggered,fiveCount:f5.length,fifteenCount:f15.length}}
+async function getHistory(days,sym,signal,progress){const now=Date.now(),cutoff=now-(days*1440+1800)*minute;let end=now,all=[],loops=0;
+while(end>cutoff&&loops<38){if(signal.aborted)throw new DOMException('Cancelado','AbortError');const bars=await fetchBars(sym,1500,end,signal);if(!bars.length)break;all.push(...bars);end=bars[0].t-1;loops++;progress(Math.min(.98,(now-end)/(now-cutoff)));if(end<=cutoff)break;await WAIT(110)}
+const map=new Map();for(const b of all)if(b.end<=now&&b.t>=cutoff)map.set(b.t,b);return [...map.values()].sort((a,b)=>a.t-b.t)}
+async function runTest(){if(replayWorking)return;const s=params();if(!valid(s)){$('testMessage').textContent='Confira margem, alavancagem e custos.';return}
+replayWorking=true;const sym=symbol,days=daysChosen;replayAbort=new AbortController();$('test').disabled=true;$('results').hidden=true;$('progress').hidden=false;$('bar').style.width='0%';
+try{$('testMessage').textContent='Obtendo candles de 1 minuto… Aguarde, principalmente para 30 dias.';
+const key=sym+'_'+days,ca=cached.get(key),usable=ca&&Date.now()-ca.at<180000;
+const one=usable?ca.one:await getHistory(days,sym,replayAbort.signal,x=>{$('bar').style.width=Math.round(x*100)+'%';$('testMessage').textContent='Baixando '+Math.round(x*100)+'%'});
+if(!usable){cached.set(key,{one,at:Date.now()});if(cached.size>2)cached.delete(cached.keys().next().value)}
+if(sym!==symbol||replayAbort.signal.aborted)throw new DOMException('Cancelado','AbortError');
+if(one.length<days*1410+1650){$('testMessage').textContent='Histórico insuficiente ('+num(one.length)+' candles). Nenhuma estatística apresentada.';return}
+let gaps=0;for(let i=1;i<one.length;i++)if(one[i].t-one[i-1].t!==minute)gaps++;if(gaps>3){$('testMessage').textContent='Histórico possui '+gaps+' lacunas de 1 minuto; teste suspenso.';return}
+$('testMessage').textContent='Simulando entradas e saídas…';await WAIT(20);
+const old=backtest(one,s,days,true,2,true),oldStats=stats(old.trades),withFilters=backtest(one,s,days,true,1,false),filteredStats=stats(withFilters.trades),result=backtest(one,s,days,false,1,false),all=stats(result.trades),start=one.at(-1).t-days*day*.3,recent=stats(result.trades.filter(x=>x.t>=start));
+$('trades').textContent=num(all.n);$('winNet').textContent=pct(all.winRate);$('winTarget').textContent=pct(all.hit);$('net').textContent=all.n?usd(all.total):'— (sem operações)';$('net').className=all.total>=0?'green':'red';
+$('recent').textContent=num(recent.n)+' operações · '+pct(recent.winRate)+' lucrativas · '+usd(recent.total);
+$('dd').textContent='US$ '+num(all.dd);$('factor').textContent=Number.isFinite(all.pf)?num(all.pf):'—';
+$('baseline').textContent=oldStats.n+' op. · '+pct(oldStats.winRate)+' · '+(oldStats.n?usd(oldStats.total):'—');$('filtered').textContent=filteredStats.n+' op. · '+pct(filteredStats.winRate)+' · '+(filteredStats.n?usd(filteredStats.total):'—');$('direct').textContent=all.n+' op. · '+pct(all.winRate)+' · '+(all.n?usd(all.total):'—');$('blockedAdx').textContent=num(withFilters.filterCounts.ADX);$('blockedVol').textContent=num(withFilters.filterCounts.VOL);$('blockedStructure').textContent=num(withFilters.filterCounts.STRUCT);$('rejected').textContent=num(result.rejected);$('rejectionReasons').textContent=Object.entries(result.rejectionReasons).map(([name,n])=>name+': '+n).join(' · ')||'Nenhuma';$('incomplete').textContent=num(result.incomplete);$('avgMargin').textContent=Number.isFinite(result.averageMargin)?'US$ '+num(result.averageMargin):'—';$('ambiguous').textContent=num(result.ambiguous);$('earlyExits').textContent=num(all.early);
+$('verdict').textContent=(all.n<30?'Amostra pequena ou sem operações: não é possível tirar conclusões confiáveis. ':all.total<0?'O resultado líquido foi negativo. ':'O resultado líquido foi positivo apenas nesta amostra, sem garantia futura. ')+result.prepared+' setups com pelo menos um método confirmado, '+result.triggered+' entradas no primeiro minuto após o candle 5m. '+result.rejected+' rejeitadas pelos limites financeiros e '+result.incomplete+' excluídas por falta de candles seguintes. Alvo e stop tocados na mesma vela contam como stop. Janela dos 30% recentes é uma verificação descritiva, não validação independente.';
+$('rows').textContent='';for(const t of result.trades.slice(-10).reverse()){const row=document.createElement('tr');for(const x of [new Date(t.t).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),t.side,t.methods.join(' + '),t.why+(t.amb?'*':''),usd(t.net)]){const cell=document.createElement('td');cell.textContent=x;row.append(cell)}$('rows').append(row)}
+$('results').hidden=false;$('bar').style.width='100%';$('testMessage').textContent=num(one.length)+' candles 1m · '+num(result.fiveCount)+' candles 5m · '+num(result.fifteenCount)+' candles 15m · '+days+' dia(s) · margem US$ '+num(s.margin)+' · alavancagem '+num(s.lev)+'x · dados Binance Futures e custos estimados.';
+}catch(e){$('testMessage').textContent=e.name==='AbortError'?'Teste interrompido; selecione o ativo e tente novamente.':'Replay indisponível: '+e.message+'. Nenhum resultado parcial apresentado.'}
+finally{replayWorking=false;$('test').disabled=false;$('progress').hidden=true;replayAbort=null}}
+$('refresh').addEventListener('click',refresh);
+$('asset').addEventListener('change',()=>{symbol=$('asset').value;if(replayAbort)replayAbort.abort();widgetLoaded=false;$('tv').textContent='';showTV();candles=[];waiting('Mudando o contrato perpétuo…');refresh()});
+$('periods').addEventListener('click',e=>{const b=e.target.closest('[data-days]');if(!b||replayWorking)return;daysChosen=+b.dataset.days;for(const x of $('periods').querySelectorAll('button'))x.classList.toggle('selected',x===b)});
+$('test').addEventListener('click',runTest);
+$('chartToggle').addEventListener('toggle',()=>{if($('chartToggle').open)showTV()});
+$('tvInterval').addEventListener('change',()=>{widgetLoaded=false;$('tv').textContent='';if($('chartToggle').open)showTV()});
+for(const key of ['margin','leverage','maxLoss','fee','slip'])$(key).addEventListener('input',()=>{if(candles.length>=1030)evaluateLive();if(!$('results').hidden){$('results').hidden=true;$('testMessage').textContent='Parâmetros modificados. Execute um novo Replay.'}});
+if($('chartToggle').open)showTV();refresh();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!candles.length||Date.now()-lastFetched>240000))refresh()});
+})();
+</script></body></html>
