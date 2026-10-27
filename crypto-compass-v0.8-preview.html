@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#091120">
-<title>Crypto Compass v0.8 · Filtros de contexto</title>
+<title>Crypto Compass v0.8 · Alertas de entrada</title>
 <style>
 :root{color-scheme:dark;--bg:#08101e;--panel:#101e32;--muted:#a5b4c8;--edge:#273951;--ink:#f0f6ff;--green:#48e0ac;--red:#ff8599;--yellow:#ffd17d;--blue:#7ebdff}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top right,#162e4d 0,transparent 42%),var(--bg);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -34,18 +34,37 @@ footer{padding-top:27px;color:var(--muted);font-size:11px;text-align:center}a{co
 .quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:18px}.quick>div{padding:10px 12px;background:#0b1a2b;border:1px solid #2a405a;border-radius:11px}.quick span{display:block;color:var(--muted);font-size:11px}.quick strong{display:block;font-size:17px} @media(min-width:630px){.quick{grid-template-columns:repeat(4,minmax(0,1fr))}}
 
 .tiny{font-size:11px;color:var(--muted)}.risknote{color:var(--yellow)}.cols2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.method{padding:12px}.method b{font-size:13px}.method .detail{font-size:11px;line-height:1.35}.stat strong{overflow-wrap:anywhere}
-@media(max-width:400px){.cols2{grid-template-columns:1fr}}</style></head><body><main>
-<header><div class="brand"><span class="mark">◈</span><div><strong>Crypto Compass</strong><small>Estratégia adaptativa · Perpétuos</small></div></div><span class="pill">v0.8 · EXPERIMENTAL</span></header>
-<h1>Análise de contexto, oportunidade e entrada.</h1>
-<p class="muted">Cinco métodos com filtros de força (ADX), volatilidade (ATR) e estrutura do mercado. Replay compara as regras antigas e as novas, sem promessas de lucro.</p>
+@media(max-width:400px){.cols2{grid-template-columns:1fr}}
+/* Alertas de entrada: sempre visíveis no próprio site, inclusive em telas pequenas. */
+.entry-last{border-color:#345772;background:linear-gradient(155deg,#102e42,#101e32)}
+.entry-header{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.entry-direction{font-weight:900;font-size:19px;letter-spacing:.03em}
+.entry-direction.long{color:var(--green)}.entry-direction.short{color:var(--red)}
+.entry-meta{color:var(--muted);font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+.entry-price{font-size:23px;font-weight:900;display:block;margin:5px 0}
+.entry-history{display:grid;gap:8px}
+.entry-item{display:flex;justify-content:space-between;gap:10px;border:1px solid var(--edge);background:#091827;border-radius:11px;padding:11px}
+.entry-item strong{display:block}.entry-item small{color:var(--muted);display:block}
+.signal-toast{position:fixed;top:max(16px,env(safe-area-inset-top));right:16px;z-index:9999;display:flex;align-items:flex-start;gap:12px;width:min(390px,calc(100vw - 32px));border:1px solid #408e87;border-left:6px solid var(--green);border-radius:17px;background:#092b31;color:#f0f6ff;box-shadow:0 18px 65px #000a;padding:15px;animation:toast-in .2s ease}
+.signal-toast.short{background:#351c2b;border-color:#99526c;border-left-color:var(--red)}
+.signal-toast[hidden]{display:none}.signal-toast .toast-body{flex:1;min-width:0}.signal-toast strong{font-size:18px;display:block}
+.signal-toast small{display:block;font-size:12px;color:#cad8e5;margin-top:4px}
+.signal-toast button{min-height:30px;width:30px;flex-shrink:0;padding:2px 5px;border:1px solid #ffffff44;border-radius:8px;background:#ffffff18;color:white}
+@keyframes toast-in{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:600px){.signal-toast{top:auto;right:12px;bottom:max(14px,env(safe-area-inset-bottom));width:calc(100vw - 24px)}}
+</style></head><body><main>
+<header><div class="brand"><span class="mark">◈</span><div><strong>Crypto Compass</strong><small>Estratégia adaptativa · Perpétuos</small></div></div><span class="pill">v0.8 · ALERTAS DE ENTRADA</span></header>
+<h1>Entradas de compra e venda em tempo real.</h1>
+<p class="muted">O sistema analisa candles fechados e mostra notificações quando detectar um sinal de entrada. Você decide quando encerrar a operação. Nenhuma ordem é enviada.</p>
 <div class="toolbar">
 <label class="field"><span>Criptomoeda</span><select id="asset"><option value="XRPUSDT">XRP / USDT</option><option value="SOLUSDT">SOL / USDT</option></select></label>
 <div class="field"><span>TradingView</span><input disabled value="5m · Binance Perpétuos"></div>
 <button id="refresh" class="primary refresh">↻ Atualizar análise</button>
 </div>
 <div class="statusline"><span class="dot" id="dot"></span><strong id="connection">Obtendo dados…</strong><span id="lastCandle">Aguardando candles fechados</span></div>
+<div id="toast" class="signal-toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
 <section class="card">
-<div class="signal"><div><div class="sub">DECISÃO DA ESTRATÉGIA</div><strong id="statusTitle">Aguardando…</strong></div><span id="signal" class="tag wait">AGUARDAR</span></div>
+<div class="signal"><div><div class="sub">SINAL DE ENTRADA</div><strong id="statusTitle">Aguardando…</strong></div><span id="signal" class="tag wait">AGUARDAR</span></div>
 <p id="reason" class="muted">Avaliando a tendência de 15 minutos e o último candle de 5 minutos.</p>
 <div class="grid">
 <div class="metric"><small>Contexto 15m</small><strong id="context">—</strong></div>
@@ -57,86 +76,35 @@ footer{padding-top:27px;color:var(--muted);font-size:11px;text-align:center}a{co
 <div class="kv"><span>Volatilidade ATR(14) 5m</span><strong id="vola">—</strong></div>
 <div class="kv"><span>Estrutura de preço 5m</span><strong id="structure">—</strong></div>
 <div class="kv"><span>Filtros adicionais</span><strong id="filters">Aguardando dados</strong></div>
-<div class="note spaced" id="interpret">O sistema só usa candles fechados. Sinais podem desaparecer ou falhar, e diferentes métodos podem compartilhar as mesmas informações.</div>
+<div class="note spaced" id="interpret">Somente sinais de entrada, com candles fechados. A saída é de sua responsabilidade. Sinais podem falhar e não há execução de ordens.</div>
 </section>
 <section class="card"><h2>Os cinco métodos</h2><p class="muted small">Tendência: EMA, VWAP e rompimento. Lateralização: suporte/resistência e Bollinger + RSI. O ADX confirma força; ATR examina volatilidade; topos e fundos identificam estrutura. Filtros não somam votos aos cinco métodos.</p><div id="methods" class="methods">Aguardando candles…</div></section>
-<section class="card"><h2>Plano teórico</h2>
-<div id="noPlan" class="muted">Nenhuma entrada candidata validada neste momento.</div>
-<div id="plan" hidden>
-<div class="grid">
-<div class="metric"><small>Entrada de referência</small><strong id="entryPlan">—</strong></div>
-<div class="metric"><small>Stop técnico</small><strong id="stopPlan">—</strong></div>
-<div class="metric"><small>Alvo dinâmico</small><strong id="targetPlan">—</strong></div></div>
-<div class="kv"><span>Perda no stop, custos incluídos</span><strong id="lossPlan" class="red">—</strong></div>
-<div class="kv"><span>Ganho no alvo, custos incluídos</span><strong id="gainPlan" class="green">—</strong></div>
-<div class="kv"><span>Relação lucro/perda líquida prevista</span><strong id="ratioPlan">—</strong></div>
-<div class="kv"><span>Margem estimada utilizada</span><strong id="usedMargin">—</strong></div>
-<div class="kv"><span>Posição nominal estimada</span><strong id="notional">—</strong></div></div>
-<p class="tiny risknote">Margem máxima por operação de US$ 150: o sistema pode usar menos margem para respeitar o limite estimado de perda. O alvo compensa os custos, mas não garante execução, lucro ou proteção contra liquidação e gaps. Não envia ordens.</p>
+<section class="card entry-last">
+<div class="entry-header"><h2 style="margin:0">Última entrada identificada</h2><button type="button" id="notifyBtn" hidden>🔔 Ativar alertas do aparelho</button></div>
+<div id="latestEntry" class="spaced muted">Nenhum sinal de entrada nesta sessão.</div>
+<p class="tiny">Avisos visuais aparecem com a página aberta. Alertas do aparelho dependem da permissão e do suporte do navegador; não são notificações push com o site fechado.</p>
 </section>
-<section class="card">
-<div class="summary"><h2>Replay da estratégia adaptativa</h2><span class="pill">SIMULAÇÃO</span></div>
-<p class="muted small">Reconstrói velas de 15m e 5m a partir do histórico de 1m, usa o candle seguinte ao gatilho para entrar e compara a estratégia 0.7.1 com a 0.8 filtrada. Stop, alvo, invalidação e saída de segurança em até 120 minutos. Mesmos custos para os dois testes.</p>
-<div class="segment" id="periods"><button type="button" data-days="1">1 dia</button><button type="button" data-days="7" class="selected">7 dias</button><button type="button" data-days="30">30 dias</button></div>
-<button id="test" class="primary spaced" style="width:100%">▶ Testar estratégia adaptativa</button>
-<div id="progress" class="progress" hidden><div id="bar"></div></div><p id="testMessage" class="tiny">Selecione um período para baixar dados reais de 1 minuto da Binance Futures.</p>
-<div id="results" hidden>
-<div class="columns">
-<div class="stat"><span>Operações</span><strong id="trades">—</strong></div>
-<div class="stat"><span>Operações lucrativas após custos</span><strong id="winNet">—</strong></div>
-<div class="stat"><span>Alvo técnico atingido</span><strong id="winTarget">—</strong></div>
-<div class="stat"><span>Resultado líquido</span><strong id="net">—</strong></div></div>
-<div class="note spaced" id="verdict">—</div>
-<div class="note spaced"><strong>Comparação no mesmo histórico</strong>
-<div class="kv"><span>Sem novos filtros (0.7.1)</span><strong id="baseline">—</strong></div>
-<div class="kv"><span>Com ADX + ATR + estrutura (0.8)</span><strong id="filtered">—</strong></div>
-<p class="tiny">Comparação retrospectiva, não validação independente. Mais filtros podem reduzir entradas e também eliminar oportunidades lucrativas.</p>
-</div>
-<div class="kv"><span>Setups bloqueados pelo ADX</span><strong id="blockedAdx">—</strong></div>
-<div class="kv"><span>Setups bloqueados por volatilidade</span><strong id="blockedVol">—</strong></div>
-<div class="kv"><span>Setups bloqueados por estrutura</span><strong id="blockedStructure">—</strong></div>
-<div class="kv"><span>Resultado nos 30% mais recentes</span><strong id="recent">—</strong></div>
-<div class="kv"><span>Maior queda acumulada (USDT)</span><strong id="dd">—</strong></div>
-<div class="kv"><span>Fator de lucro</span><strong id="factor">—</strong></div>
-<div class="kv"><span>Entradas rejeitadas pelos filtros</span><strong id="rejected">—</strong></div>
-<div class="kv"><span>Motivos das rejeições</span><strong id="rejectionReasons">—</strong></div>
-<div class="kv"><span>Entradas sem histórico futuro suficiente</span><strong id="incomplete">—</strong></div>
-<div class="kv"><span>Margem média das operações</span><strong id="avgMargin">—</strong></div>
-<div class="kv"><span>Candles ambíguos: alvo e stop no mesmo minuto</span><strong id="ambiguous">—</strong></div>
-<div class="kv"><span>Saídas por invalidação / segurança</span><strong id="earlyExits">—</strong></div>
-<details class="spaced"><summary>Ver últimas operações</summary><div class="inside tablewrap"><table><thead><tr><th>Data</th><th>Direção</th><th>Métodos</th><th>Saída</th><th>Líquido</th></tr></thead><tbody id="rows"></tbody></table></div></details>
-</div></section>
+<section class="card"><h2>Histórico de entradas</h2><div id="entryHistory" class="entry-history"><span class="muted small">Nenhuma entrada registrada nesta sessão.</span></div></section>
 <details class="card" id="chartToggle" open><summary>Gráfico TradingView · perpétuos · período selecionável</summary>
 <div class="inside"><label class="field"><span>Tempo do gráfico visual</span><select id="tvInterval">
 <option value="1">1 minuto</option><option value="5" selected>5 minutos</option><option value="15">15 minutos</option><option value="60">1 hora</option>
 </select></label><p class="tiny">O período selecionado altera só o TradingView. As regras automáticas continuam com 15m / 5m / 1m.</p>
-<p class="tiny">TradingView é apenas o gráfico visual. Os sinais e testes usam candles Binance USD-M Futures separadamente; não há integração com sua corretora ou marcações de sinais sobre as velas.</p>
+<p class="tiny">TradingView é apenas o gráfico visual. Os alertas usam candles Binance USD-M Futures separadamente. Não há integração com sua corretora nem execução de operações.</p>
 <div id="tv" class="tv"><p class="tvmsg">Carregando gráfico…</p></div><a id="tvlink" target="_blank" rel="noopener noreferrer" href="https://www.tradingview.com/">Abrir no TradingView</a></div>
 </details>
-<details class="card"><summary>Avançado · exposição e custos</summary>
-<div class="inside">
-<div class="fields">
-<label class="field"><span>Margem máxima por operação (USDT)</span><input id="margin" type="number" value="150" min="1" step="1" inputmode="decimal"></label>
-<label class="field"><span>Alavancagem (5x provisória)</span><input id="leverage" type="number" value="5" min="1" max="125" step="1" inputmode="numeric"></label>
-<label class="field"><span>Limite de perda estimada por operação (USDT)</span><input id="maxLoss" type="number" value="5" min=".1" max="500" step=".5" inputmode="decimal"></label>
-<label class="field"><span>Taxa por lado (%)</span><input id="fee" type="number" value=".05" min="0" max="1" step=".01" inputmode="decimal"></label>
-<label class="field"><span>Slippage estimado por lado (%)</span><input id="slip" type="number" value=".02" min="0" max="2" step=".01" inputmode="decimal"></label>
-</div>
-<p class="tiny risknote">O stop é técnico. O tamanho da posição diminui quando necessário para respeitar a perda máxima estimada, e o alvo precisa compensar custos e risco. A perda real pode superar o limite por gaps, slippage, taxas reais e liquidação. Simulação, não execução.</p>
-</div></details>
-<footer>CRYPTO COMPASS v0.8 EXPERIMENTAL · Somente análise e simulação · Não há garantia de lucros · Nenhuma ordem é executada.</footer>
+<footer>CRYPTO COMPASS v0.8 · Apenas sinais de entrada, sem indicações de saída · Não há garantia de lucros nem execução de ordens.</footer>
 </main><script>
 (function(){
 'use strict';
-const $=id=>document.getElementById(id),minute=60000,day=86400000,WAIT=ms=>new Promise(r=>setTimeout(r,ms));
-let symbol='XRPUSDT',candles=[],socket=null,abort=null,replayAbort=null,replayWorking=false,daysChosen=7,lastFetched=0,widgetLoaded=false;
-const cached=new Map();
-const num=x=>Number(x).toLocaleString('pt-BR',{maximumFractionDigits:2}),pct=x=>Number.isFinite(x)?num(x*100)+'%':'—';
-const usd=x=>Number.isFinite(x)?(x<0?'−US$ ':'+US$ ')+num(Math.abs(x)):'—';
+const $=id=>document.getElementById(id),minute=60000;
+let symbol='XRPUSDT',candles=[],socket=null,abort=null,lastFetched=0,widgetLoaded=false,toastTimer=null;
+const recentEntries=[],seenSignals=new Set();
+try{const saved=JSON.parse(sessionStorage.getItem('cryptoCompassEntries08')||'[]');
+if(Array.isArray(saved)){for(const e of saved.slice(0,15)){if(e&&typeof e.id==='string'&&typeof e.symbol==='string'&&Number.isFinite(e.value)&&Number.isFinite(e.end)){recentEntries.push(e);seenSignals.add(e.id)}}}
+}catch(e){/* sessão indisponível: alertas continuam funcionando na página */}
+const num=x=>Number(x).toLocaleString('pt-BR',{maximumFractionDigits:2});
 const price=x=>Number.isFinite(x)?'$ '+Number(x).toLocaleString('en-US',{minimumFractionDigits:x<5?4:2,maximumFractionDigits:x<5?5:2}):'—';
 const names=['Pullback nas EMA 9/21','Rompimento com volume','Reação na VWAP','Suporte e resistência','Bollinger + RSI'];
-function params(){return {margin:+$('margin').value,lev:+$('leverage').value,maxLoss:+$('maxLoss').value,fee:+$('fee').value/100,slip:+$('slip').value/100}}
-function valid(s){return Object.values(s).every(Number.isFinite)&&s.margin>0&&s.lev>=1&&s.lev<=125&&s.maxLoss>0&&s.fee>=0&&s.fee<=.01&&s.slip>=0&&s.slip<=.02}
 function candlesFrom(rows){return rows.map(z=>({t:+z[0],o:+z[1],h:+z[2],l:+z[3],c:+z[4],v:+z[5],end:+z[6]})).filter(z=>Object.values(z).every(Number.isFinite)&&z.o>0&&z.c>0&&z.l>0&&z.h>=Math.max(z.o,z.c)&&z.l<=Math.min(z.o,z.c))}
 async function fetchBars(sym,count,end,signal){const u='https://fapi.binance.com/fapi/v1/klines?symbol='+encodeURIComponent(sym)+'&interval=1m&limit='+count+(end?'&endTime='+end:'');const res=await fetch(u,{cache:'no-store',signal});if(!res.ok)throw Error('Binance Futures HTTP '+res.status);const data=await res.json();if(!Array.isArray(data))throw Error('Resposta inesperada');return candlesFrom(data)}
 function aggregate(one,minutes){const ms=minutes*minute,output=[];let bucket=[],key=-1;
@@ -257,59 +225,80 @@ return {side,regime,states,atr,confirmed:side==='LONG'?longs:side==='SHORT'?shor
 function trigger1(one,i,side){if(i<20)return false;const z=one[i],p=one[i-1],vol=one.slice(i-15,i).reduce((a,b)=>a+b.v,0)/15,volOK=z.v>=vol*.9;
 return volOK&&(side==='LONG'?z.c>z.o&&z.c>p.h:z.c<z.o&&z.c<p.l)}
 
-function pnl(entry,exit,side,s,qtyOverride){
- const qty=qtyOverride===undefined?s.margin*s.lev/entry:qtyOverride,k=s.fee+s.slip,d=side==='LONG'?1:-1;
- return qty*(d*(exit-entry)-k*(entry+exit))
-}
-function plan(entry,side,s,atr5,last5){
- const fail=(why,reason)=>({ok:false,why,reason});
- if(!(Number.isFinite(entry)&&entry>0&&Number.isFinite(atr5)&&atr5>0&&last5.length>=4&&valid(s)))return fail('Dados ou parâmetros insuficientes.','Dados');
- const d=side==='LONG'?1:-1,k=s.fee+s.slip,part=last5.slice(-4);
- const pivot=side==='LONG'?Math.min(...part.map(x=>x.l)):Math.max(...part.map(x=>x.h));
- const distance=Math.max(.85*atr5,d*(entry-pivot)+.12*atr5);
- if(!Number.isFinite(distance)||distance<=0||distance>3*atr5)return fail('Stop técnico muito distante da volatilidade atual.','Stop distante');
- const stop=entry-d*distance;
- if(stop<=0)return fail('Stop calculado fora dos preços válidos.','Preço inválido');
- // Perda por unidade, com taxa/slippage estimados em ambos os lados.
- const costAtStop=k*(entry+stop),riskPerUnit=distance+costAtStop;
- if(!(riskPerUnit>0))return fail('Risco por unidade inválido.','Preço inválido');
- // Usar a MENOR posição entre margem máxima e limite líquido de risco.
- const qty=Math.min(s.margin*s.lev/entry,s.maxLoss/riskPerUnit);
- if(!(qty>0&&Number.isFinite(qty))||qty*entry<10)return fail('Posição viável menor que US$ 10.','Posição insuficiente');
- const minRR=1.25;
- // Alvo mínimo para que recompensa líquida / perda líquida >= 1,25.
- const requiredDist=(minRR*riskPerUnit+2*k*entry)/(1-d*k);
- const targetDistance=Math.max(1.8*distance,requiredDist*1.005);
- // Sem inventar alvos ilimitados apenas para mostrar uma entrada.
- if(targetDistance>Math.min(3*distance,4.4*atr5))return fail('Custos altos: alvo necessário está longe demais da volatilidade recente.','Alvo/custos');
- const target=entry+d*targetDistance;
- if(!(target>0&&Number.isFinite(target)))return fail('Alvo inválido.','Preço inválido');
- const loss=pnl(entry,stop,side,s,qty),gain=pnl(entry,target,side,s,qty),ratio=loss<0?gain/(-loss):NaN;
- if(!(Number.isFinite(ratio)&&ratio>=minRR-1e-6&&gain>0&&loss<0&&-loss<=s.maxLoss+1e-6))return fail('A relação líquida não atende ao risco definido.','Risco/retorno');
- return {ok:true,entry,stop,target,loss,gain,ratio,qty,notional:qty*entry,marginUsed:qty*entry/s.lev,
-   stopDistance:distance,targetDistance,riskCap:s.maxLoss};
-}
-
 function lastIndexAt(c,t){let lo=0,hi=c.length-1,ans=-1;while(lo<=hi){const mid=(lo+hi)>>1;if(c[mid].end<=t){ans=mid;lo=mid+1}else hi=mid-1}return ans}
 function statusUI(txt,cls){$('signal').textContent=txt;$('signal').className='tag '+cls}
-function waiting(reason){statusUI('AGUARDAR','wait');$('statusTitle').textContent='Sem entrada validada';$('reason').textContent=reason;$('plan').hidden=true;$('noPlan').hidden=false}
+function waiting(reason){statusUI('AGUARDAR','wait');$('statusTitle').textContent='Aguardando entrada';$('reason').textContent=reason;$('interpret').textContent='Somente sinais de entrada. O aviso só aparece após confirmação de candles fechados. A saída é por sua conta.'}
 function methodUI(states){const el=$('methods');el.textContent='';for(const st of states){const row=document.createElement('div');row.className='method';const left=document.createElement('div'),title=document.createElement('b'),details=document.createElement('div'),side=document.createElement('span');
 title.textContent=st.name;details.className='detail';details.textContent=st.why;left.append(title,details);side.className='state '+(st.status==='LONG'?'LONG':st.status==='SHORT'?'SHORT':st.status==='AGUARDAR'?'WAIT':'NEUTRAL');side.textContent=st.status;row.append(left,side);el.append(row)}}
-function evaluateLive(){if(candles.length<1030){waiting('Aguardando pelo menos 1.030 candles de 1 minuto para análise completa.');return}const one=candles,now=Date.now(),last=one.at(-1);$('lastCandle').textContent='Candle de 1m fechado às '+new Date(last.end).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});$('price').textContent=price(last.c);
+function entryDirection(side){return side==='LONG'?'COMPRA':'VENDA'}
+function entryTime(end){return new Date(end).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}
+function renderEntries(){
+const entries=recentEntries.filter(e=>e.symbol===symbol);
+const last=$('latestEntry');last.textContent='';
+if(!entries.length){last.className='spaced muted';last.textContent='Nenhum sinal de entrada registrado para '+symbol.replace('USDT','/USDT')+'.'}
+else{last.className='spaced';const e=entries[0],head=document.createElement('div'),value=document.createElement('strong'),meta=document.createElement('div');
+head.className='entry-direction '+(e.side==='LONG'?'long':'short');head.textContent='● '+entryDirection(e.side)+' · '+e.symbol.replace('USDT','/USDT');
+value.className='entry-price';value.textContent=price(e.value);
+meta.className='entry-meta';meta.textContent=entryTime(e.end)+' · '+e.methods.join(' + ');
+last.append(head,value,meta)}
+const history=$('entryHistory');history.textContent='';
+if(!entries.length){const empty=document.createElement('span');empty.className='muted small';empty.textContent='Nenhum alerta nesta sessão.';history.append(empty);return}
+for(const e of entries.slice(0,10)){const item=document.createElement('div'),left=document.createElement('div'),dir=document.createElement('strong'),when=document.createElement('small'),val=document.createElement('strong');
+item.className='entry-item';dir.className=e.side==='LONG'?'green':'red';dir.textContent=entryDirection(e.side);
+when.textContent=entryTime(e.end);val.textContent=price(e.value);
+left.append(dir,when);item.append(left,val);history.append(item)}
+}
+function showEntryToast(e){
+const host=$('toast');host.textContent='';host.className='signal-toast '+(e.side==='LONG'?'long':'short');
+const body=document.createElement('div'),heading=document.createElement('strong'),details=document.createElement('small'),close=document.createElement('button');
+body.className='toast-body';heading.textContent=(e.side==='LONG'?'🟢 COMPRA':'🔴 VENDA')+' · '+e.symbol.replace('USDT','/USDT');
+details.textContent='Entrada: '+price(e.value)+' · '+entryTime(e.end)+' · '+e.methods.join(' + ');
+close.type='button';close.textContent='×';close.setAttribute('aria-label','Fechar aviso');close.addEventListener('click',()=>{host.hidden=true});
+body.append(heading,details);host.append(body,close);host.hidden=false;
+if(toastTimer)clearTimeout(toastTimer);
+toastTimer=setTimeout(()=>{host.hidden=true},14000);
+if(document.hidden&&'Notification' in window&&Notification.permission==='granted'){
+try{const n=new Notification('Crypto Compass · '+entryDirection(e.side),{body:e.symbol.replace('USDT','/USDT')+' · Entrada '+price(e.value),tag:e.id});n.onclick=()=>window.focus()}catch(err){/* navegador não permite notificação nativa */}}
+}
+function announceEntry(e){
+if(seenSignals.has(e.id))return;
+seenSignals.add(e.id);recentEntries.unshift(e);recentEntries.splice(15);
+try{sessionStorage.setItem('cryptoCompassEntries08',JSON.stringify(recentEntries))}catch(err){}
+renderEntries();
+if(Date.now()-e.end<=120000)showEntryToast(e);
+}
+function initNotifications(){
+const b=$('notifyBtn');
+if(!('Notification' in window)||!window.isSecureContext)return;
+b.hidden=false;
+const render=()=>{b.textContent=Notification.permission==='granted'?'🔔 Alertas do aparelho ativados':Notification.permission==='denied'?'🔕 Alertas bloqueados pelo navegador':'🔔 Ativar alertas do aparelho';b.disabled=Notification.permission!=='default'};
+render();
+b.addEventListener('click',async()=>{try{await Notification.requestPermission()}catch(e){}render()});
+}
+function evaluateLive(){
+if(candles.length<1030){waiting('Aguardando pelo menos 1.030 candles de 1 minuto para análise completa.');return}
+const one=candles,now=Date.now(),last=one.at(-1);
+$('lastCandle').textContent='Candle de 1m fechado às '+new Date(last.end).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+$('price').textContent=price(last.c);
 if(now-last.end>180000){waiting('Histórico de 1 minuto desatualizado. Atualize.');return}
-const s=params();if(!valid(s)){waiting('Verifique as configurações de margem, risco e taxas.');return}
-const f5=aggregate(one,5),f15=aggregate(one,15);if(f5.length<70||f15.length<65){waiting('Aguardando candles completos de 5m e 15m.');return}
+const f5=aggregate(one,5),f15=aggregate(one,15);
+if(f5.length<70||f15.length<65){waiting('Aguardando candles completos de 5m e 15m.');return}
 const k5=indicators(f5),k15=indicators(f15),five=f5.at(-1),i5=f5.length-1,i15=lastIndexAt(f15,five.end),regime=trend15(f15,k15,i15);
-const setup=setup5(f5,k5,i5,regime),a15=adx14(f15),extra=extraFilters(regime,setup.side,f5,k5,i5,f15,k15,i15,a15),viewVol=volatility5(f5,k5,i5),viewStr=structure5(f5,i5);$('adx15').textContent=Number.isFinite(a15.adx[i15])?num(a15.adx[i15])+' · '+(a15.adx[i15]<18?'fraco':a15.adx[i15]<25?'moderado':'forte'):'—';$('vola').textContent=viewVol.label;$('structure').textContent=viewStr.label;$('filters').textContent=setup.side==='WAIT'?'Sem setup':extra.ok?'Passou nos filtros':extra.reason;$('context').textContent=regime;$('setup').textContent=setup.side==='WAIT'?'AGUARDAR':setup.side+' '+setup.confirmed+'/5';methodUI(setup.states);
-const timeAfter=last.t-(five.end+1);const eligible=timeAfter>=0&&timeAfter<5*minute,gotTrigger=setup.side!=='WAIT'&&eligible&&trigger1(one,one.length-1,setup.side);
+const setup=setup5(f5,k5,i5,regime),a15=adx14(f15),extra=extraFilters(regime,setup.side,f5,k5,i5,f15,k15,i15,a15),viewVol=volatility5(f5,k5,i5),viewStr=structure5(f5,i5);
+$('adx15').textContent=Number.isFinite(a15.adx[i15])?num(a15.adx[i15])+' · '+(a15.adx[i15]<18?'fraco':a15.adx[i15]<25?'moderado':'forte'):'—';
+$('vola').textContent=viewVol.label;$('structure').textContent=viewStr.label;$('filters').textContent=setup.side==='WAIT'?'Sem setup':extra.ok?'Passou nos filtros':extra.reason;
+$('context').textContent=regime;$('setup').textContent=setup.side==='WAIT'?'AGUARDAR':entryDirection(setup.side)+' '+setup.confirmed+'/5';methodUI(setup.states);
+const timeAfter=last.t-(five.end+1),eligible=timeAfter>=0&&timeAfter<5*minute;
+const gotTrigger=setup.side!=='WAIT'&&eligible&&trigger1(one,one.length-1,setup.side);
 $('trigger').textContent=gotTrigger?'CONFIRMADO':eligible?'AGUARDAR':'NOVA VELA 5m';
-if(!gotTrigger){waiting(setup.side==='WAIT'?setup.why:'Aguardando gatilho 1m após a preparação 5m.');return}if(!extra.ok){waiting('Gatilho identificado, mas filtros adicionais rejeitaram: '+extra.reason);return}
-const p=plan(last.c,setup.side,s,setup.atr,f5.slice(0,i5+1));if(!p.ok){waiting('Gatilho encontrado, mas entrada rejeitada: '+p.why);return}
-statusUI(setup.side,setup.side==='LONG'?'long':'short');$('statusTitle').textContent=setup.side==='LONG'?'Compra candidata':'Venda candidata';
-$('reason').textContent='15m '+regime+' · '+setup.confirmed+' métodos 5m · gatilho 1m. Próxima abertura pode diferir do preço indicado.';
-$('entryPlan').textContent=price(p.entry);$('stopPlan').textContent=price(p.stop);$('targetPlan').textContent=price(p.target);$('lossPlan').textContent=usd(p.loss);$('gainPlan').textContent=usd(p.gain);$('ratioPlan').textContent=num(p.ratio)+' : 1';$('usedMargin').textContent='US$ '+num(p.marginUsed);$('notional').textContent='US$ '+num(p.notional);
-$('plan').hidden=false;$('noPlan').hidden=true;
-$('interpret').textContent='Stop e alvo dependem do ATR e da estrutura do preço. Este sinal só considera candles já fechados e não prevê o próximo movimento.';
+if(!gotTrigger){waiting(setup.side==='WAIT'?setup.why:'Aguardando gatilho 1m após a preparação 5m.');return}
+if(!extra.ok){waiting('Gatilho identificado, mas filtros adicionais rejeitaram: '+extra.reason);return}
+const direction=entryDirection(setup.side);
+statusUI(direction,setup.side==='LONG'?'long':'short');
+$('statusTitle').textContent='ENTRADA DE '+direction;
+$('reason').textContent='15m '+regime+' · '+setup.confirmed+' métodos 5m · gatilho 1m. Preço de referência: '+price(last.c)+'.';
+$('interpret').textContent='Entrada identificada em candle fechado; a execução pode ocorrer em outro preço. Sem stop, alvo ou sinal de saída automático.';
+announceEntry({id:symbol+'-'+last.end+'-'+setup.side,symbol,side:setup.side,value:last.c,end:last.end,methods:setup.states.filter(x=>x.status===setup.side).map(x=>x.name)});
 }
 function haltSocket(){const w=socket;socket=null;if(w){w.onclose=null;w.onmessage=null;w.close()}}
 async function refresh(){const sym=symbol;haltSocket();if(abort)abort.abort();abort=new AbortController();$('refresh').disabled=true;$('connection').textContent='Baixando histórico 1m…';
@@ -331,61 +320,11 @@ wrap.className='tradingview-widget-container';wrap.style.cssText='height:100%;wi
 const sym=symbol==='XRPUSDT'?'BINANCE:XRPUSDT.P':'BINANCE:SOLUSDT.P';
 scr.async=true;scr.src='https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';scr.textContent=JSON.stringify({autosize:true,symbol:sym,interval:$('tvInterval').value,timezone:'America/Sao_Paulo',theme:'dark',locale:'br',style:'1',hide_side_toolbar:true,allow_symbol_change:false,support_host:'https://www.tradingview.com'});wrap.append(scr);
 $('tvlink').href='https://www.tradingview.com/chart/?symbol='+encodeURIComponent(sym)}
-function stats(tr){let win=0,hit=0,total=0,peak=0,dd=0,profit=0,loss=0,early=0;
-for(const t of tr){if(t.net>0){win++;profit+=t.net}else loss+=Math.abs(t.net);if(t.why==='Alvo')hit++;if(t.why==='Invalidação'||t.why==='Segurança 120m')early++;total+=t.net;peak=Math.max(peak,total);dd=Math.max(dd,peak-total)}
-return {n:tr.length,winRate:tr.length?win/tr.length:NaN,hit:tr.length?hit/tr.length:NaN,total,dd,pf:loss?profit/loss:profit?Infinity:NaN,early}}
-function backtest(one,s,days,useExtras=true){const f5=aggregate(one,5),f15=aggregate(one,15),k5=indicators(f5),k15=indicators(f15),k1=indicators(one),a15=useExtras?adx14(f15):null;
-const index=new Map(one.map((c,i)=>[c.t,i]));const trades=[];let rejected=0,ambiguous=0,until=-1,prepared=0,triggered=0,incomplete=0,marginSum=0;const rejectionReasons={},filterCounts={ADX:0,VOL:0,STRUCT:0};
-const cutoff=one.at(-1).t-days*day;
-for(let i=195;i<f5.length-1;i++){const candle=f5[i],at=candle.end+1;if(at<cutoff||at<=until)continue;
-const i15=lastIndexAt(f15,candle.end);if(i15<65)continue;const regime=trend15(f15,k15,i15),setup=setup5(f5,k5,i,regime);if(setup.side==='WAIT')continue;prepared++;if(useExtras){const extra=extraFilters(regime,setup.side,f5,k5,i,f15,k15,i15,a15);if(!extra.ok){if(filterCounts[extra.which]!==undefined)filterCounts[extra.which]++;continue}}
-const min=index.get(at);if(min===undefined)continue;
-let trig=-1;for(let j=min;j<min+5&&j+1<one.length;j++){if(one[j].t!==at+(j-min)*minute)break;if(trigger1(one,j,setup.side)){trig=j;break}}
-if(trig<0)continue;triggered++;const eIndex=trig+1;if(eIndex>=one.length-120){incomplete++;continue}const entry=one[eIndex].o,p=plan(entry,setup.side,s,setup.atr,f5.slice(0,i+1));if(!p.ok){rejected++;rejectionReasons[p.reason]=(rejectionReasons[p.reason]||0)+1;continue}
-const d=setup.side==='LONG'?1:-1;let out=NaN,why='',exitIndex=-1,amb=false;
-for(let j=eIndex;j<Math.min(one.length,eIndex+120);j++){const b=one[j],stopHit=d===1?b.l<=p.stop:b.h>=p.stop,targetHit=d===1?b.h>=p.target:b.l<=p.target;
-if(stopHit&&targetHit){ambiguous++;amb=true}
-if(stopHit){out=d===1?Math.min(p.stop,b.o):Math.max(p.stop,b.o);why='Stop';exitIndex=j;break}
-if(targetHit){out=p.target;why='Alvo';exitIndex=j;break}
-// Invalidação técnica: candle fechado duas vezes do outro lado da EMA 21 do 1m, após 4 minutos.
-if(j>=eIndex+4&&j+1<one.length&&((d===1&&b.c<k1.e21[j]&&one[j-1].c<k1.e21[j-1])||(d===-1&&b.c>k1.e21[j]&&one[j-1].c>k1.e21[j-1]))){out=one[j+1].o;why='Invalidação';exitIndex=j+1;break}
-}
-if(!Number.isFinite(out)){exitIndex=eIndex+119;if(exitIndex>=one.length)continue;out=one[exitIndex].c;why='Segurança 120m'}
-if(!Number.isFinite(out))continue;const gross=p.qty*d*(out-entry),net=pnl(entry,out,setup.side,s,p.qty);marginSum+=p.marginUsed;
-trades.push({t:one[eIndex].t,side:setup.side,methods:setup.states.filter(x=>x.status===setup.side).map(x=>x.name),why,gross,net,amb,margin:p.marginUsed,nominal:p.notional,loss:p.loss,gain:p.gain});
-until=one[exitIndex].t;
-}
-return {trades,rejected,rejectionReasons,filterCounts,incomplete,averageMargin:trades.length?marginSum/trades.length:NaN,ambiguous,prepared,triggered,fiveCount:f5.length,fifteenCount:f15.length}}
-async function getHistory(days,sym,signal,progress){const now=Date.now(),cutoff=now-(days*1440+1800)*minute;let end=now,all=[],loops=0;
-while(end>cutoff&&loops<38){if(signal.aborted)throw new DOMException('Cancelado','AbortError');const bars=await fetchBars(sym,1500,end,signal);if(!bars.length)break;all.push(...bars);end=bars[0].t-1;loops++;progress(Math.min(.98,(now-end)/(now-cutoff)));if(end<=cutoff)break;await WAIT(110)}
-const map=new Map();for(const b of all)if(b.end<=now&&b.t>=cutoff)map.set(b.t,b);return [...map.values()].sort((a,b)=>a.t-b.t)}
-async function runTest(){if(replayWorking)return;const s=params();if(!valid(s)){$('testMessage').textContent='Confira margem, alavancagem e custos.';return}
-replayWorking=true;const sym=symbol,days=daysChosen;replayAbort=new AbortController();$('test').disabled=true;$('results').hidden=true;$('progress').hidden=false;$('bar').style.width='0%';
-try{$('testMessage').textContent='Obtendo candles de 1 minuto… Aguarde, principalmente para 30 dias.';
-const key=sym+'_'+days,ca=cached.get(key),usable=ca&&Date.now()-ca.at<180000;
-const one=usable?ca.one:await getHistory(days,sym,replayAbort.signal,x=>{$('bar').style.width=Math.round(x*100)+'%';$('testMessage').textContent='Baixando '+Math.round(x*100)+'%'});
-if(!usable){cached.set(key,{one,at:Date.now()});if(cached.size>2)cached.delete(cached.keys().next().value)}
-if(sym!==symbol||replayAbort.signal.aborted)throw new DOMException('Cancelado','AbortError');
-if(one.length<days*1410+1650){$('testMessage').textContent='Histórico insuficiente ('+num(one.length)+' candles). Nenhuma estatística apresentada.';return}
-let gaps=0;for(let i=1;i<one.length;i++)if(one[i].t-one[i-1].t!==minute)gaps++;if(gaps>3){$('testMessage').textContent='Histórico possui '+gaps+' lacunas de 1 minuto; teste suspenso.';return}
-$('testMessage').textContent='Simulando entradas e saídas…';await WAIT(20);
-const base=backtest(one,s,days,false),baseStats=stats(base.trades),result=backtest(one,s,days,true),all=stats(result.trades),start=one.at(-1).t-days*day*.3,recent=stats(result.trades.filter(x=>x.t>=start));
-$('trades').textContent=num(all.n);$('winNet').textContent=pct(all.winRate);$('winTarget').textContent=pct(all.hit);$('net').textContent=all.n?usd(all.total):'— (sem operações)';$('net').className=all.total>=0?'green':'red';
-$('recent').textContent=num(recent.n)+' operações · '+pct(recent.winRate)+' lucrativas · '+usd(recent.total);
-$('dd').textContent='US$ '+num(all.dd);$('factor').textContent=Number.isFinite(all.pf)?num(all.pf):'—';
-$('baseline').textContent=baseStats.n+' op. · '+pct(baseStats.winRate)+' · '+(baseStats.n?usd(baseStats.total):'—');$('filtered').textContent=all.n+' op. · '+pct(all.winRate)+' · '+(all.n?usd(all.total):'—');$('blockedAdx').textContent=num(result.filterCounts.ADX);$('blockedVol').textContent=num(result.filterCounts.VOL);$('blockedStructure').textContent=num(result.filterCounts.STRUCT);$('rejected').textContent=num(result.rejected);$('rejectionReasons').textContent=Object.entries(result.rejectionReasons).map(([name,n])=>name+': '+n).join(' · ')||'Nenhuma';$('incomplete').textContent=num(result.incomplete);$('avgMargin').textContent=Number.isFinite(result.averageMargin)?'US$ '+num(result.averageMargin):'—';$('ambiguous').textContent=num(result.ambiguous);$('earlyExits').textContent=num(all.early);
-$('verdict').textContent=(all.n<30?'Amostra pequena ou sem operações: não é possível tirar conclusões confiáveis. ':all.total<0?'O resultado líquido foi negativo. ':'O resultado líquido foi positivo apenas nesta amostra, sem garantia futura. ')+result.prepared+' setups preparados, '+result.triggered+' gatilhos 1m identificados após os filtros. '+result.rejected+' vetados pelos filtros e '+result.incomplete+' excluídos por falta de candles seguintes. Alvo e stop tocados na mesma vela contam como stop. Janela dos 30% recentes é uma verificação descritiva, não validação independente.';
-$('rows').textContent='';for(const t of result.trades.slice(-10).reverse()){const row=document.createElement('tr');for(const x of [new Date(t.t).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),t.side,t.methods.join(' + '),t.why+(t.amb?'*':''),usd(t.net)]){const cell=document.createElement('td');cell.textContent=x;row.append(cell)}$('rows').append(row)}
-$('results').hidden=false;$('bar').style.width='100%';$('testMessage').textContent=num(one.length)+' candles 1m · '+num(result.fiveCount)+' candles 5m · '+num(result.fifteenCount)+' candles 15m · '+days+' dia(s) · margem US$ '+num(s.margin)+' · alavancagem '+num(s.lev)+'x · dados Binance Futures e custos estimados.';
-}catch(e){$('testMessage').textContent=e.name==='AbortError'?'Teste interrompido; selecione o ativo e tente novamente.':'Replay indisponível: '+e.message+'. Nenhum resultado parcial apresentado.'}
-finally{replayWorking=false;$('test').disabled=false;$('progress').hidden=true;replayAbort=null}}
 $('refresh').addEventListener('click',refresh);
-$('asset').addEventListener('change',()=>{symbol=$('asset').value;if(replayAbort)replayAbort.abort();widgetLoaded=false;$('tv').textContent='';showTV();candles=[];waiting('Mudando o contrato perpétuo…');refresh()});
-$('periods').addEventListener('click',e=>{const b=e.target.closest('[data-days]');if(!b||replayWorking)return;daysChosen=+b.dataset.days;for(const x of $('periods').querySelectorAll('button'))x.classList.toggle('selected',x===b)});
-$('test').addEventListener('click',runTest);
+$('asset').addEventListener('change',()=>{symbol=$('asset').value;widgetLoaded=false;$('tv').textContent='';$('toast').hidden=true;renderEntries();if($('chartToggle').open)showTV();candles=[];waiting('Mudando o contrato perpétuo…');refresh()});
 $('chartToggle').addEventListener('toggle',()=>{if($('chartToggle').open)showTV()});
 $('tvInterval').addEventListener('change',()=>{widgetLoaded=false;$('tv').textContent='';if($('chartToggle').open)showTV()});
-for(const key of ['margin','leverage','maxLoss','fee','slip'])$(key).addEventListener('input',()=>{if(candles.length>=1030)evaluateLive();if(!$('results').hidden){$('results').hidden=true;$('testMessage').textContent='Parâmetros modificados. Execute um novo Replay.'}});
+renderEntries();initNotifications();
 if($('chartToggle').open)showTV();refresh();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!candles.length||Date.now()-lastFetched>240000))refresh()});
 })();
