@@ -44,10 +44,11 @@
           <div class="month-row total-row"><span>Saldo atual</span><strong id="monthlyEnding">R$ 0,00</strong></div>
         </section>
         <section class="surface chart-card">
-          <div class="section-heading"><div><h2>Evolução patrimonial</h2><span>Últimos 6 meses com base nos seus registros</span></div></div>
+          <div class="section-heading"><div><h2>Evolução patrimonial</h2><span>Últimos 6 meses desde o início do acompanhamento</span></div></div>
           <div id="chartArea" role="img" aria-label="Gráfico da evolução patrimonial"></div>
         </section>
         <button class="primary-button home-cta" id="homeNewYield">+ Registrar rendimento de hoje</button>
+        <button class="secondary-button past-cta" id="homePastYield" type="button">↶ Registrar rendimento do mês passado</button>
         <p class="foot-note">Valores informados manualmente por você, sem conexão com bancos.</p>
       </section>
       <section id="view-add" class="view" aria-labelledby="addHeading">
@@ -65,13 +66,23 @@
             <label for="entryAmount">Valor em reais</label>
             <div class="money-input"><span>R$</span><input id="entryAmount" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00" required aria-describedby="valueHint"></div>
             <small class="field-hint" id="valueHint">Para um rendimento negativo, coloque − antes do valor.</small>
-            <label for="entryDate">Data</label><input id="entryDate" class="date-input" type="date" required>
+            <label for="entryDate">Data do lançamento</label>
+            <div class="date-shortcuts" role="group" aria-label="Quando aconteceu">
+              <button type="button" id="dateToday" class="date-shortcut active">Hoje</button>
+              <button type="button" id="datePast" class="date-shortcut">Outra data (caderno)</button>
+            </div>
+            <input id="entryDate" class="date-input" type="date" required>
+            <small id="dateHelp" class="field-hint">Toque em “Outra data (caderno)” para registrar rendimentos do mês passado.</small>
+            <div class="historical-toggle hidden" id="alreadyInInitialBox">
+              <label for="entryAlreadyIncluded"><input type="checkbox" id="entryAlreadyIncluded"> Esse valor já estava no meu patrimônio inicial</label>
+              <small>Deixe marcado se o valor já faz parte do saldo informado quando você começou a usar o app. Ele aparecerá no histórico do mês correto, sem ser somado novamente ao patrimônio atual.</small>
+            </div>
             <label for="entryNote">Observação <span class="optional">(opcional)</span></label><input type="text" id="entryNote" placeholder="Ex.: CDB, investimento..." maxlength="100">
             <button class="primary-button" type="submit" id="saveEntry">Salvar rendimento</button>
             <button type="button" id="cancelEdit" class="ghost-button hidden">Cancelar edição</button>
           </form>
         </div>
-        <div class="tip"><span>✦</span><p>Você só precisa lançar o rendimento do dia. O patrimônio, a meta e o resumo mensal se atualizam na hora.</p></div>
+        <div class="tip"><span>✦</span><p>Tem rendimentos anotados no caderno? Escolha “Outra data” e informe o dia original. Os valores serão lançados no mês correto.</p></div>
       </section>
       <section id="view-history" class="view" aria-labelledby="historyHeading">
         <div class="intro"><p class="eyebrow">SEU REGISTRO</p><h1 id="historyHeading">Histórico</h1><p>Consulte e corrija lançamentos quando quiser.</p></div>
@@ -93,7 +104,7 @@
         <section class="surface form-card"><h2>Backup e restauração</h2><p class="settings-copy">As informações são guardadas neste iPhone, não no GitHub. Exporte uma cópia regularmente para o app Arquivos ou iCloud Drive, porque limpar dados de sites ou remover o app pode apagar os registros locais.</p><button class="secondary-button" type="button" id="exportBackup">↓ Fazer backup (.json)</button><label for="importBackup" class="file-button">↥ Restaurar backup</label><input id="importBackup" type="file" accept="application/json,.json" class="visually-hidden"><small class="field-hint">Restaurar substitui os registros atuais após sua confirmação.</small></section>
         <section class="surface info-card"><h2>Funciona sem internet</h2><p>Após a primeira abertura e instalação pelo Safari, o app pode funcionar offline. O GitHub Pages hospeda apenas os arquivos do programa; seus valores não são enviados a ele.</p><div class="status-line" id="offlineStatus"><span class="status-dot"></span> Verificando disponibilidade offline...</div><p class="field-hint">Recomenda-se abrir o app uma vez com internet antes de usar offline.</p></section>
         <button class="danger-link" id="clearData">Apagar meus registros e recomeçar</button>
-        <p class="foot-note">Rumo ao 1 Milhão · aplicativo pessoal · versão 1.0</p>
+        <p class="foot-note">Rumo ao 1 Milhão · aplicativo pessoal · versão 1.1</p>
       </section>
     </main>
     <nav class="bottom-nav" aria-label="Navegação principal"><button class="nav-item active" data-view="home" aria-current="page"><span class="nav-symbol">⌂</span><small>Início</small></button><button class="nav-item" data-view="add"><span class="nav-symbol">⊕</span><small>Lançar</small></button><button class="nav-item" data-view="history"><span class="nav-symbol">▤</span><small>Histórico</small></button><button class="nav-item" data-view="settings"><span class="nav-symbol">⚙</span><small>Ajustes</small></button></nav>
