@@ -1,4 +1,4 @@
-/* Rumo ao 1 Milhão 1.3 — dados e cálculos feitos somente neste dispositivo. */
+/* Rumo ao 1 Milhão 1.4 — dados e cálculos feitos somente neste dispositivo. */
 'use strict';
 (() => {
   const KEY = 'rumo-ao-milhao-v1';
@@ -34,6 +34,7 @@
   const defaultState = () => ({version:1,setupComplete:false,initialCents:0,goalCents:100000000,startedAt:dateLocal(),entries:[]});
   let state=defaultState();
   let editingId=null;
+  let pendingImport=null;
   let toastTimer;
   function toast(message){const e=$('toast');e.textContent=message;e.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>e.classList.remove('show'),3500);}
   function persist(next){try {localStorage.setItem(KEY,JSON.stringify(next));state=next;return true;}catch(e){console.error('Erro ao salvar:',e);toast('Não foi possível salvar neste iPhone. Confira o espaço disponível.');return false;}}
@@ -46,36 +47,16 @@
       seen.add(String(e.id));
       if(e.kind==='yield'){if(yieldDates.has(e.date))throw new Error('O backup contém rendimentos duplicados na mesma data.');yieldDates.add(e.date);}
     });
-    return {version:1,setupComplete:s.setupComplete,initialCents:s.initialCents,goalCents:s.goalCents,startedAt:s.startedAt,entries:s.entries.map(e=>({id:String(e.id),kind:e.kind,date:e.date,cents:e.cents,note:e.note,includedInInitial:e.includedInInitial===true}))};
+    return {version:1,setupComplete:s.setupComplete,initialCents:s.initialCents,goalCents:s.goalCents,startedAt:s.startedAt,entries:s.entries.map(e=>({id:String(e.id),kind:e.kind,date:e.date,cents:e.cents,note:e.note,includedInInitial:false}))};
   }
   function load() {try {const raw=localStorage.getItem(KEY);if(raw)state=validateBackup(JSON.parse(raw));}catch(e){console.error('Falha ao carregar dados:',e);state=defaultState();toast('Não foi possível ler os dados salvos. Importe um backup, se tiver.');}}
   function signedAmount(e){return e.kind==='withdrawal'?-e.cents:e.cents;}
   // Lançamentos que já faziam parte do patrimônio inicial são apenas históricos.
-  function accountedAmount(e){return e.includedInInitial===true?0:signedAmount(e);}
+  function accountedAmount(e){return signedAmount(e);}
   function entriesBefore(month){return state.entries.filter(e=>e.date.slice(0,7)<month).reduce((s,e)=>s+accountedAmount(e),0);}
   function monthly(month){const group=state.entries.filter(e=>e.date.startsWith(month));const opening=state.initialCents+entriesBefore(month);
     return {opening,closing:opening+group.reduce((s,e)=>s+accountedAmount(e),0),yield:group.filter(e=>e.kind==='yield').reduce((s,e)=>s+e.cents,0),deposits:group.filter(e=>e.kind==='deposit').reduce((s,e)=>s+e.cents,0),withdrawals:group.filter(e=>e.kind==='withdrawal').reduce((s,e)=>s+e.cents,0),days:new Set(group.filter(e=>e.kind==='yield').map(e=>e.date)).size,count:group.filter(e=>e.kind==='yield').length};}
   const totalBalance=()=>state.initialCents+state.entries.reduce((s,e)=>s+accountedAmount(e),0);
-  function pendingYields(){return state.entries.filter(e=>e.kind==='yield'&&e.includedInInitial===true);}
-  function renderYieldFixNotice(){
-    const entries=pendingYields(),panel=$('yieldFixNotice');
-    panel.classList.toggle('hidden',entries.length===0);
-    if(!entries.length)return;
-    const sum=entries.reduce((s,e)=>s+e.cents,0);
-    $('yieldFixText').textContent=`${entries.length} ${entries.length===1?'rendimento antigo está marcado':'rendimentos antigos estão marcados'} como "já incluído no patrimônio inicial" e ${entries.length===1?'não foi somado':'não foram somados'} ao saldo (${money(sum)}). Se esse valor ainda não faz parte do seu patrimônio inicial, você pode corrigi-lo em um toque.`;
-    $('yieldFixButton').textContent=`Somar ${money(sum)} ao patrimônio`;
-  }
-  function fixPendingYields(){
-    const entries=pendingYields();
-    if(!entries.length){renderAll();return;}
-    const sum=entries.reduce((s,e)=>s+e.cents,0);
-    const nextBalance=totalBalance()+sum;
-    const prompt=`Corrigir ${entries.length} ${entries.length===1?'rendimento antigo':'rendimentos antigos'}?\n\nValor que será somado: ${money(sum)}\nSaldo atual: ${money(totalBalance())}\nNovo saldo: ${money(nextBalance)}\n\nCONFIRME SOMENTE SE esses rendimentos ainda NÃO fazem parte do patrimônio inicial de ${money(state.initialCents)}. Caso já estejam incluídos, toque em Cancelar para evitar contagem duplicada.\n\nDeseja somar agora?`;
-    if(!window.confirm(prompt))return;
-    const ids=new Set(entries.map(e=>e.id));
-    const next={...state,entries:state.entries.map(e=>ids.has(e.id)?{...e,includedInInitial:false}:e)};
-    if(persist(next)){renderAll();toast(`Rendimentos corrigidos! Patrimônio: ${money(totalBalance())}`);}
-  }
   function renderHome(){
     const total=totalBalance(), target=state.goalCents, remaining=Math.max(0,target-total), pct=target>0?Math.max(0,Math.min(100,total/target*100)):0;
     const mo=monthLocal(),m=monthly(mo);
@@ -93,7 +74,6 @@
     $('monthlyWithdrawals').textContent=money(m.withdrawals);
     $('monthlyOpening').textContent=money(m.opening);
     $('monthlyEnding').textContent=money(m.closing);
-    renderYieldFixNotice();
     renderChart();
   }
   function monthsBetween(start,end){ const out=[];const [sy,sm]=start.split('-').map(Number);const [ey,em]=end.split('-').map(Number);let y=sy,m=sm;while(y<ey||(y===ey&&m<=em)){out.push(`${y}-${String(m).padStart(2,'0')}`);m++;if(m>12){m=1;y++;}if(out.length>240)break;}return out; }
@@ -129,7 +109,7 @@
       const mark=document.createElement('div');mark.className='entry-mark'+(e.kind==='withdrawal'?' withdrawal':'');mark.textContent=e.kind==='withdrawal'?'−':e.kind==='deposit'?'+':'↗';
       const info=document.createElement('div');const nm=document.createElement('div');nm.className='entry-name';nm.textContent=typeLabel(e.kind);const dt=document.createElement('div');dt.className='entry-date';dt.textContent=formatDate(e.date);info.append(nm,dt);
       if(e.note){const note=document.createElement('div');note.className='entry-note';note.textContent=e.note;info.append(note);}
-      if(e.includedInInitial){const flag=document.createElement('span');flag.className='historical-label';flag.textContent='Já incluído no patrimônio inicial';info.append(flag);}lhs.append(mark,info);
+      lhs.append(mark,info);
       const rhs=document.createElement('div');rhs.className='entry-right';const value=document.createElement('div');value.className='entry-sum'+(signedAmount(e)<0?' negative':'');value.textContent=`${signedAmount(e)>0?'+':''}${money(signedAmount(e))}`;
       const actions=document.createElement('div');actions.className='action-row';const edit=document.createElement('button');edit.type='button';edit.textContent='Editar';edit.addEventListener('click',()=>beginEdit(e.id));const del=document.createElement('button');del.type='button';del.textContent='Excluir';del.addEventListener('click',()=>removeEntry(e.id));actions.append(edit,del);rhs.append(value,actions);row.append(lhs,rhs);list.append(row);
     }
@@ -147,18 +127,13 @@
     $('valueHint').textContent=kind==='yield'?'Para um rendimento negativo, coloque − antes do valor.':kind==='deposit'?'Aporte feito: será somado ao patrimônio.':'Retirada feita: será descontada do patrimônio.';
   }
   function updateDateControls(){
-    const date=$('entryDate').value,older=isDate(date)&&date<state.startedAt;
-    const wrap=$('alreadyInInitialBox');
-    wrap.classList.toggle('hidden',!older);
-    // Nunca marcar automaticamente: rendimentos antigos devem entrar no saldo
-    // salvo quando a pessoa indicar que já estavam no patrimônio inicial.
-    if(!older)$('entryAlreadyIncluded').checked=false;
+    const date=$('entryDate').value;
     $('dateToday').classList.toggle('active',date===dateLocal());
     $('datePast').classList.toggle('active',date!==dateLocal());
-    $('dateHelp').textContent=older?'Este lançamento será somado ao patrimônio. Marque a opção abaixo somente se o valor já estava incluído no patrimônio inicial.':'Rendimentos e aportes registrados serão somados ao patrimônio automaticamente.';
+    $('dateHelp').textContent='Rendimentos e aportes, mesmo de datas anteriores, serão somados ao patrimônio. Retiradas serão descontadas.';
   }
-  function resetEntry(){editingId=null;$('entryForm').reset();$('entryDate').value=dateLocal();$('entryAlreadyIncluded').checked=false;$('alreadyInInitialBox').classList.add('hidden');$('entryNote').value='';$('entryFormTitle').textContent='Novo lançamento';$('cancelEdit').classList.add('hidden');changeKind('yield');updateDateControls();}
-  function beginEdit(id){const e=state.entries.find(x=>x.id===id);if(!e)return;editingId=id;$('entryAmount').value=fmtNumber(e.cents);$('entryDate').value=e.date;$('entryNote').value=e.note;$('entryAlreadyIncluded').checked=e.includedInInitial===true;$('alreadyInInitialBox').classList.add('hidden');$('entryFormTitle').textContent='Editar lançamento';$('cancelEdit').classList.remove('hidden');changeKind(e.kind);updateDateControls();navigate('add');}
+  function resetEntry(){editingId=null;$('entryForm').reset();$('entryDate').value=dateLocal();$('entryNote').value='';$('entryFormTitle').textContent='Novo lançamento';$('cancelEdit').classList.add('hidden');changeKind('yield');updateDateControls();}
+  function beginEdit(id){const e=state.entries.find(x=>x.id===id);if(!e)return;editingId=id;$('entryAmount').value=fmtNumber(e.cents);$('entryDate').value=e.date;$('entryNote').value=e.note;$('entryFormTitle').textContent='Editar lançamento';$('cancelEdit').classList.remove('hidden');changeKind(e.kind);updateDateControls();navigate('add');}
   function newPastEntry(){resetEntry();$('entryDate').value=previousMonthStart();updateDateControls();navigate('add');} 
   function removeEntry(id){const e=state.entries.find(x=>x.id===id);if(!e)return;if(!window.confirm(`Excluir ${typeLabel(e.kind).toLowerCase()} de ${formatDate(e.date)} no valor de ${money(e.cents)}?`))return;
     const next={...state,entries:state.entries.filter(x=>x.id!==id)};if(persist(next)){renderAll();toast('Lançamento excluído.');}
@@ -167,11 +142,11 @@
     if(!validKind(kind)||cents===null||(kind!=='yield'&&cents<=0)){toast('Informe um valor válido. Aportes e retiradas devem ser positivos.');return;}
     if(!isDate(date)){toast('Informe uma data válida.');return;}
     if(kind==='yield'&&state.entries.some(e=>e.kind==='yield'&&e.date===date&&e.id!==editingId)){toast('Já existe rendimento nessa data. Use Histórico para editar.');return;}
-    const record={id:editingId||`${Date.now()}-${Math.random().toString(36).slice(2,11)}`,kind,date,cents,note,includedInInitial:date<state.startedAt&&$('entryAlreadyIncluded').checked};
+    const record={id:editingId||`${Date.now()}-${Math.random().toString(36).slice(2,11)}`,kind,date,cents,note,includedInInitial:false};
     const next={...state,entries:editingId?state.entries.map(e=>e.id===editingId?record:e):[...state.entries,record]};
     if(persist(next)){
       const past=date<dateLocal();resetEntry();
-      if(past){$('entryDate').value=date;updateDateControls();$('monthPicker').value=date.slice(0,7);renderAll();navigate('add');toast(record.includedInInitial?'Histórico salvo sem alterar o patrimônio.':'Data anterior salva! Patrimônio atualizado.');}
+      if(past){$('entryDate').value=date;updateDateControls();$('monthPicker').value=date.slice(0,7);renderAll();navigate('add');toast('Data anterior salva! Patrimônio atualizado.');}
       else{renderAll();navigate('home');toast('Lançamento salvo! Patrimônio atualizado.');}
     }
   }
@@ -189,8 +164,8 @@
   }
   function exportBackup(){const name=`rumo-ao-milhao-backup-${dateLocal()}.json`;const blob=new File([JSON.stringify({...state,exportedAt:new Date().toISOString()},null,2)],name,{type:'application/json'});shareOrDownload(blob,name);}
   function csvCell(v){let s=String(v??'');if(/^[\s]*[=+@\-\t\r]/.test(s))s="'"+s;return `"${s.replace(/"/g,'""')}"`;}
-  function exportCsv(){const rows=[['Data','Tipo','Valor (R$)','Observação','Já incluído no patrimônio inicial?']];
-    for(const e of state.entries.slice().sort((a,b)=>a.date.localeCompare(b.date)))rows.push([formatDate(e.date),typeLabel(e.kind),(signedAmount(e)/100).toFixed(2).replace('.',','),e.note,e.includedInInitial?'Sim':'Não']);
+  function exportCsv(){const rows=[['Data','Tipo','Valor (R$)','Observação']];
+    for(const e of state.entries.slice().sort((a,b)=>a.date.localeCompare(b.date)))rows.push([formatDate(e.date),typeLabel(e.kind),(signedAmount(e)/100).toFixed(2).replace('.',','),e.note]);
     const body='\ufeff'+rows.map(row=>row.map(csvCell).join(';')).join('\r\n');const filename=`rumo-ao-milhao-historico-${dateLocal()}.csv`;const file=new File([body],filename,{type:'text/csv;charset=utf-8'});shareOrDownload(file,filename);
   }
   async function importBackup(e){const file=e.target.files?.[0];e.target.value='';if(!file)return;
@@ -215,7 +190,6 @@
     $('welcomeForm').addEventListener('submit',onWelcomeSubmit);
     $('homeNewYield').addEventListener('click',()=>{resetEntry();navigate('add');});
     $('homePastYield').addEventListener('click',newPastEntry);
-    $('yieldFixButton').addEventListener('click',fixPendingYields);
     $('dateToday').addEventListener('click',()=>{$('entryDate').value=dateLocal();updateDateControls();});
     $('datePast').addEventListener('click',()=>{$('entryDate').value=previousMonthStart();updateDateControls();$('entryDate').focus();});
     $('entryDate').addEventListener('change',()=>updateDateControls());
