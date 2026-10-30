@@ -36,6 +36,12 @@
           <article class="stat-card"><div class="stat-icon mint">◎</div><span>Falta para a meta</span><strong id="remainingValue">R$ 1.000.000,00</strong><small id="remainingSub">Continue avançando</small></article>
           <article class="stat-card"><div class="stat-icon peach">↗</div><span>Rendimentos do mês</span><strong id="monthlyYield">R$ 0,00</strong><small id="yieldCount">0 lançamentos</small></article>
         </div>
+        <section class="surface correction-card hidden" id="yieldFixNotice">
+          <h2>Rendimentos ainda não somados</h2>
+          <p id="yieldFixText">Confira os rendimentos antigos antes de somá-los ao patrimônio.</p>
+          <button type="button" id="yieldFixButton" class="secondary-button">Corrigir rendimentos antigos</button>
+          <small class="field-hint">O aplicativo só fará essa alteração depois da sua confirmação. Seus registros e datas serão preservados.</small>
+        </section>
         <section class="surface month-card">
           <div class="section-heading"><div><h2>Resumo do mês</h2><span id="currentMonthName">Outubro de 2026</span></div><span class="mini-icon">▦</span></div>
           <div class="month-row"><span>Aportes</span><strong id="monthlyDeposits">R$ 0,00</strong></div>
@@ -104,7 +110,7 @@
         <section class="surface form-card"><h2>Backup e restauração</h2><p class="settings-copy">As informações são guardadas neste iPhone, não no GitHub. Exporte uma cópia regularmente para o app Arquivos ou iCloud Drive, porque limpar dados de sites ou remover o app pode apagar os registros locais.</p><button class="secondary-button" type="button" id="exportBackup">↓ Fazer backup (.json)</button><label for="importBackup" class="file-button">↥ Restaurar backup</label><input id="importBackup" type="file" accept="application/json,.json" class="visually-hidden"><small class="field-hint">Restaurar substitui os registros atuais após sua confirmação.</small></section>
         <section class="surface info-card"><h2>Funciona sem internet</h2><p>Após a primeira abertura e instalação pelo Safari, o app pode funcionar offline. O GitHub Pages hospeda apenas os arquivos do programa; seus valores não são enviados a ele.</p><div class="status-line" id="offlineStatus"><span class="status-dot"></span> Verificando disponibilidade offline...</div><p class="field-hint">Recomenda-se abrir o app uma vez com internet antes de usar offline.</p></section>
         <button class="danger-link" id="clearData">Apagar meus registros e recomeçar</button>
-        <p class="foot-note">Rumo ao 1 Milhão · aplicativo pessoal · versão 1.2</p>
+        <p class="foot-note">Rumo ao 1 Milhão · aplicativo pessoal · versão 1.3</p>
       </section>
     </main>
     <nav class="bottom-nav" aria-label="Navegação principal"><button class="nav-item active" data-view="home" aria-current="page"><span class="nav-symbol">⌂</span><small>Início</small></button><button class="nav-item" data-view="add"><span class="nav-symbol">⊕</span><small>Lançar</small></button><button class="nav-item" data-view="history"><span class="nav-symbol">▤</span><small>Histórico</small></button><button class="nav-item" data-view="settings"><span class="nav-symbol">⚙</span><small>Ajustes</small></button></nav>
