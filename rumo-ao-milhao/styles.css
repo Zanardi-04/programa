@@ -11,3 +11,9 @@
 .historical-toggle input[type=checkbox]{accent-color:var(--green);width:18px;height:18px;flex-shrink:0;margin:0}
 .historical-toggle small{display:block;margin:7px 0 0 27px;color:#658473;font-size:11px;line-height:1.5}
 .historical-label{font-size:10px;color:#168252;background:#e7f5ed;border-radius:6px;display:inline-block;padding:3px 6px;margin-top:5px}
+
+/* Revisão opcional de rendimentos anteriores sem modificar os cartões existentes. */
+.correction-card{border-color:#cfe5d5;background:#f4faf6}
+.correction-card h2{color:var(--green);margin-bottom:8px}
+.correction-card p{font-size:12px;line-height:1.6;color:#557160;margin:0 0 12px}
+.correction-card .secondary-button{margin:8px 0}
