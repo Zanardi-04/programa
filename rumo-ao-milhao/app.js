@@ -174,6 +174,154 @@
       if(persist(data)){resetEntry();$('monthPicker').value=monthLocal();renderAll();$('welcomeModal').classList.toggle('hidden',data.setupComplete);navigate('home');toast('Backup restaurado com sucesso.');}
     }catch(err){toast(`Não foi possível restaurar: ${err.message||'arquivo inválido'}`);}
   }
+
+  function importKey(value){
+    return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  }
+  function parseImportDate(value){
+    const raw=String(value??'').trim();
+    let y,m,d;
+    if(/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(raw)){
+      [y,m,d]=raw.slice(0,10).split('-').map(Number);
+    } else if(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/.test(raw)){
+      const p=raw.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+      d=Number(p[1]);m=Number(p[2]);y=Number(p[3]);
+    } else if(/^\d{4,5}(?:\.\d+)?$/.test(raw)){
+      const serial=Math.floor(Number(raw));
+      if(serial<61||serial>110000)return null;
+      const date=new Date(Date.UTC(1899,11,30)+serial*86400000);
+      y=date.getUTCFullYear();m=date.getUTCMonth()+1;d=date.getUTCDate();
+    } else return null;
+    const iso=String(y).padStart(4,'0')+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    return isDate(iso)?iso:null;
+  }
+  function identifyImportKind(value){
+    const v=importKey(value);
+    if(!v||/^(rendimento|rendimentos|lucro|juros|yield|ganho)( |$)/.test(v))return 'yield';
+    if(/^(aporte|aportes|deposito|depositos|deposit|entrada)( |$)/.test(v))return 'deposit';
+    if(/^(retirada|retiradas|saque|saques|withdrawal|saida)( |$)/.test(v))return 'withdrawal';
+    return null;
+  }
+  function importColumns(rows){
+    for(let i=0;i<Math.min(rows.length,25);i++){
+      const headers=(rows[i]||[]).map(importKey);
+      const ix=predicate=>headers.findIndex(predicate);
+      const date=ix(h=>['data','date','dia','data do lancamento','data da movimentacao'].includes(h));
+      if(date<0)continue;
+      const type=ix(h=>['tipo','tipo de lancamento','movimentacao','operacao','categoria'].includes(h));
+      const value=ix(h=>['valor','valor r','valor em reais','valor total','montante','quantia','amount'].includes(h));
+      const yieldCol=ix(h=>['rendimento','rendimentos','juros','lucro','valor rendimento','valor dos rendimentos'].includes(h));
+      const depositCol=ix(h=>['aporte','aportes','deposito','depositos','valor aporte'].includes(h));
+      const withdrawCol=ix(h=>['retirada','retiradas','saque','saques','valor retirada'].includes(h));
+      const note=ix(h=>['observacao','observacoes','descricao','detalhes','nota','notas'].includes(h));
+      if(value<0&&yieldCol<0&&depositCol<0&&withdrawCol<0)continue;
+      return {header:i,date,type,value,yieldCol,depositCol,withdrawCol,note};
+    }
+    throw new Error('Não encontrei as colunas Data e Valor, ou Data e Rendimento/Aporte. Confira os títulos.');
+  }
+  function parseImportRows(rows){
+    const cols=importColumns(rows),items=[],errors=[];
+    for(let i=cols.header+1;i<rows.length;i++){
+      const r=rows[i]||[],line=i+1;
+      if(!r.some(v=>String(v??'').trim()))continue;
+      const date=parseImportDate(r[cols.date]);
+      const note=cols.note>=0?String(r[cols.note]??'').trim().slice(0,100):'';
+      const fields=cols.value>=0
+        ? [{kind:cols.type>=0?identifyImportKind(r[cols.type]):'yield',raw:r[cols.value]}]
+        : [{kind:'yield',raw:r[cols.yieldCol]},{kind:'deposit',raw:r[cols.depositCol]},{kind:'withdrawal',raw:r[cols.withdrawCol]}];
+      for(const field of fields){
+        if(field.raw===undefined||field.raw===null||String(field.raw).trim()==='')continue;
+        if(!field.kind){errors.push('Linha '+line+': tipo de lançamento desconhecido.');continue;}
+        if(!date||date>dateLocal()){errors.push('Linha '+line+': data inválida ou futura.');continue;}
+        let cents=parseCents(String(field.raw));
+        if(cents===null){errors.push('Linha '+line+': valor não reconhecido.');continue;}
+        if(field.kind==='withdrawal')cents=Math.abs(cents);
+        if((field.kind!=='yield'&&cents<=0)||cents===0){errors.push('Linha '+line+': valor precisa ser diferente de zero.');continue;}
+        items.push({kind:field.kind,date,cents,note,line});
+      }
+    }
+    if(items.length>5000)throw new Error('Importe no máximo 5.000 lançamentos por vez.');
+    return {items,errors};
+  }
+  function importFingerprint(e){return [e.kind,e.date,e.cents,importKey(e.note)].join('|');}
+  function prepareImport(items){
+    const known=new Set(state.entries.map(importFingerprint));
+    const yields=new Set(state.entries.filter(e=>e.kind==='yield').map(e=>e.date));
+    const accepted=[],repeated=[];
+    for(const record of items){
+      const identity=importFingerprint(record);
+      if(known.has(identity)||(record.kind==='yield'&&yields.has(record.date))){
+        repeated.push(record);
+        continue;
+      }
+      known.add(identity);
+      if(record.kind==='yield')yields.add(record.date);
+      accepted.push(record);
+    }
+    return {accepted,repeated};
+  }
+  function hideImportPreview(){
+    pendingImport=null;
+    $('importPreview').classList.add('hidden');
+    $('importPreviewList').replaceChildren();
+  }
+  async function onImportFile(ev){
+    const file=ev.target.files?.[0];ev.target.value='';
+    hideImportPreview();
+    if(!file)return;
+    try {
+      if(!window.RumoSpreadsheetImport)throw new Error('O leitor de planilhas não está disponível. Atualize a página.');
+      const rows=await window.RumoSpreadsheetImport.readSpreadsheet(file);
+      const parsed=parseImportRows(rows);
+      const proposal=prepareImport(parsed.items);
+      if(state.entries.length+proposal.accepted.length>20000)throw new Error('O limite de 20.000 lançamentos será ultrapassado.');
+      pendingImport={name:file.name,items:parsed.items,errors:parsed.errors};
+      const delta=proposal.accepted.reduce((s,e)=>s+signedAmount(e),0);
+      $('importPreviewTitle').textContent='Prévia: '+file.name;
+      $('importPreviewText').textContent=proposal.accepted.length+' novos lançamentos · '+proposal.repeated.length+' duplicados · '+parsed.errors.length+' erros. Variação: '+money(delta)+'. Novo saldo: '+money(totalBalance()+delta)+'.';
+      const details=$('importPreviewList');details.replaceChildren();
+      for(const entry of proposal.accepted.slice(0,5)){
+        const li=document.createElement('li');
+        li.textContent=formatDate(entry.date)+' · '+typeLabel(entry.kind)+' · '+money(signedAmount(entry));
+        details.append(li);
+      }
+      if(proposal.accepted.length>5){
+        const li=document.createElement('li');li.textContent='...e mais '+(proposal.accepted.length-5)+' lançamento(s).';details.append(li);
+      }
+      for(const problem of parsed.errors.slice(0,3)){
+        const li=document.createElement('li');li.textContent='Atenção: '+problem;details.append(li);
+      }
+      $('importConfirm').textContent='Importar '+proposal.accepted.length+' lançamentos';
+      $('importConfirm').disabled=proposal.accepted.length===0;
+      $('importPreview').classList.remove('hidden');
+      if(!proposal.accepted.length)toast('Não há lançamentos novos. Confira a prévia.');
+    }catch(err){
+      toast('Falha ao ler a planilha: '+(err.message||'arquivo inválido'));
+    }
+  }
+  function confirmImport(){
+    if(!pendingImport)return;
+    const proposal=prepareImport(pendingImport.items);
+    if(!proposal.accepted.length){hideImportPreview();toast('Os lançamentos já estão no histórico.');return;}
+    if(state.entries.length+proposal.accepted.length>20000){toast('Limite de 20.000 lançamentos.');return;}
+    const delta=proposal.accepted.reduce((s,e)=>s+signedAmount(e),0);
+    const prompt='Importar '+proposal.accepted.length+' lançamentos de '+pendingImport.name+'?\n\nVariação: '+money(delta)+'\nSaldo anterior: '+money(totalBalance())+'\nSaldo após importar: '+money(totalBalance()+delta)+'\n\nOs duplicados serão ignorados. Essa operação altera o patrimônio. Confirma?';
+    if(!window.confirm(prompt))return;
+    const now=Date.now();
+    const added=proposal.accepted.map((e,i)=>({
+      id:'import-'+now+'-'+i+'-'+Math.random().toString(36).slice(2,9),
+      kind:e.kind,date:e.date,cents:e.cents,note:e.note,includedInInitial:false
+    }));
+    if(persist({...state,entries:[...state.entries,...added]})){
+      hideImportPreview();renderAll();navigate('home');
+      toast(added.length+' lançamentos importados! Patrimônio: '+money(totalBalance()));
+    }
+  }
+  function exportImportTemplate(){
+    const csv='\ufeffData;Tipo;Valor;Observação\r\n18/10/2026;Rendimento;400,00;Exemplo de rendimento\r\n19/10/2026;Aporte;200,00;Exemplo de aporte\r\n';
+    const name='modelo-rumo-ao-milhao.csv';
+    shareOrDownload(new File([csv],name,{type:'text/csv;charset=utf-8'}),name);
+  }
   function clearData(){if(!window.confirm('Apagar TODOS os lançamentos e configurações deste aparelho? Esta ação não pode ser desfeita sem um backup.'))return;
     if(persist(defaultState())){resetEntry();$('monthPicker').value=monthLocal();renderAll();navigate('home');$('welcomeModal').classList.remove('hidden');toast('Dados apagados. Configure seu patrimônio novamente.');}
   }
@@ -197,6 +345,10 @@
     $('monthPicker').addEventListener('change',renderHistory);
     $('exportBackup').addEventListener('click',exportBackup);
     $('downloadCsv').addEventListener('click',exportCsv);
+    $('importSpreadsheet').addEventListener('change',onImportFile);
+    $('importConfirm').addEventListener('click',confirmImport);
+    $('importCancel').addEventListener('click',hideImportPreview);
+    $('downloadImportTemplate').addEventListener('click',exportImportTemplate);
     $('importBackup').addEventListener('change',importBackup);
     $('clearData').addEventListener('click',clearData);
     initOffline();
