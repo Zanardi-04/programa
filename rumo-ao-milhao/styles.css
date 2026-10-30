@@ -17,3 +17,12 @@
 .correction-card h2{color:var(--green);margin-bottom:8px}
 .correction-card p{font-size:12px;line-height:1.6;color:#557160;margin:0 0 12px}
 .correction-card .secondary-button{margin:8px 0}
+
+/* Prévia de planilhas com a identidade visual do aplicativo. */
+.import-preview{border-top:1px solid var(--border);margin-top:18px;padding-top:14px}
+.import-preview h3{font-size:14px;margin:0 0 9px}
+.import-preview p,.import-preview li{font-size:12px;line-height:1.55;color:#586f60}
+.import-preview ul{padding-left:19px;margin:10px 0 15px}
+.import-preview .primary-button{margin-top:12px}
+.import-card .ghost-button{margin:4px 0 9px}
+.import-preview .primary-button:disabled{opacity:.45;cursor:not-allowed}
