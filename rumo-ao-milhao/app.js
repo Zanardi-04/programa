@@ -1,4 +1,4 @@
-/* Rumo ao 1 Milhão 1.0 — dados e cálculos feitos somente neste dispositivo. */
+/* Rumo ao 1 Milhão 1.1 — dados e cálculos feitos somente neste dispositivo. */
 'use strict';
 (() => {
   const KEY = 'rumo-ao-milhao-v1';
@@ -8,6 +8,7 @@
   const fmtNumber = cents => (cents/100).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
   const dateLocal = (d=new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const monthLocal = (d=new Date()) => dateLocal(d).slice(0,7);
+  const previousMonthStart = () => {const d=new Date();return dateLocal(new Date(d.getFullYear(),d.getMonth()-1,1));};
   const monthName = month => {const [y,m]=month.split('-').map(Number);return new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric'}).format(new Date(y,m-1,1)).replace(/^./,x=>x.toUpperCase());};
   const formatDate = date => { const [y,m,d]=date.split('-'); return `${d}/${m}/${y}`; };
   function isDate(v) {if(!/^\d{4}-\d{2}-\d{2}$/.test(v))return false; const [y,m,d]=v.split('-').map(Number);const x=new Date(y,m-1,d);return x.getFullYear()===y&&x.getMonth()===m-1&&x.getDate()===d&&y>=1900&&y<=2200;}
@@ -41,17 +42,20 @@
     if(!s||s.version!==1||typeof s.setupComplete!=='boolean'||!Number.isSafeInteger(s.initialCents)||s.initialCents<0||s.initialCents>1e14||!Number.isSafeInteger(s.goalCents)||s.goalCents<=0||s.goalCents>1e14||!isDate(s.startedAt)||!Array.isArray(s.entries)||s.entries.length>20000)throw new Error('Formato de backup incompatível.');
     const seen=new Set(),yieldDates=new Set();
     s.entries.forEach(e=>{
-      if(!e||(typeof e.id!=='string'&&typeof e.id!=='number')||String(e.id).length>80||seen.has(String(e.id))||!validKind(e.kind)||!isDate(e.date)||!Number.isSafeInteger(e.cents)||Math.abs(e.cents)>1e14||(e.kind!=='yield'&&e.cents<=0)||typeof e.note!=='string'||e.note.length>100)throw new Error('Um dos lançamentos é inválido.');
+      if(!e||(typeof e.id!=='string'&&typeof e.id!=='number')||String(e.id).length>80||seen.has(String(e.id))||!validKind(e.kind)||!isDate(e.date)||!Number.isSafeInteger(e.cents)||Math.abs(e.cents)>1e14||(e.kind!=='yield'&&e.cents<=0)||typeof e.note!=='string'||e.note.length>100||(e.includedInInitial!==undefined&&typeof e.includedInInitial!=='boolean'))throw new Error('Um dos lançamentos é inválido.');
       seen.add(String(e.id));
       if(e.kind==='yield'){if(yieldDates.has(e.date))throw new Error('O backup contém rendimentos duplicados na mesma data.');yieldDates.add(e.date);}
     });
-    return {version:1,setupComplete:s.setupComplete,initialCents:s.initialCents,goalCents:s.goalCents,startedAt:s.startedAt,entries:s.entries.map(e=>({id:String(e.id),kind:e.kind,date:e.date,cents:e.cents,note:e.note}))};
+    return {version:1,setupComplete:s.setupComplete,initialCents:s.initialCents,goalCents:s.goalCents,startedAt:s.startedAt,entries:s.entries.map(e=>({id:String(e.id),kind:e.kind,date:e.date,cents:e.cents,note:e.note,includedInInitial:e.includedInInitial===true}))};
   }
   function load() {try {const raw=localStorage.getItem(KEY);if(raw)state=validateBackup(JSON.parse(raw));}catch(e){console.error('Falha ao carregar dados:',e);state=defaultState();toast('Não foi possível ler os dados salvos. Importe um backup, se tiver.');}}
   function signedAmount(e){return e.kind==='withdrawal'?-e.cents:e.cents;}
-  function entriesBefore(month){return state.entries.filter(e=>e.date.slice(0,7)<month).reduce((s,e)=>s+signedAmount(e),0);}
-  function monthly(month){const group=state.entries.filter(e=>e.date.startsWith(month));return {opening:state.initialCents+entriesBefore(month),yield:group.filter(e=>e.kind==='yield').reduce((s,e)=>s+e.cents,0),deposits:group.filter(e=>e.kind==='deposit').reduce((s,e)=>s+e.cents,0),withdrawals:group.filter(e=>e.kind==='withdrawal').reduce((s,e)=>s+e.cents,0),days:new Set(group.filter(e=>e.kind==='yield').map(e=>e.date)).size,count:group.filter(e=>e.kind==='yield').length};}
-  const totalBalance=()=>state.initialCents+state.entries.reduce((s,e)=>s+signedAmount(e),0);
+  // Lançamentos que já faziam parte do patrimônio inicial são apenas históricos.
+  function accountedAmount(e){return e.includedInInitial===true?0:signedAmount(e);}
+  function entriesBefore(month){return state.entries.filter(e=>e.date.slice(0,7)<month).reduce((s,e)=>s+accountedAmount(e),0);}
+  function monthly(month){const group=state.entries.filter(e=>e.date.startsWith(month));const opening=state.initialCents+entriesBefore(month);
+    return {opening,closing:opening+group.reduce((s,e)=>s+accountedAmount(e),0),yield:group.filter(e=>e.kind==='yield').reduce((s,e)=>s+e.cents,0),deposits:group.filter(e=>e.kind==='deposit').reduce((s,e)=>s+e.cents,0),withdrawals:group.filter(e=>e.kind==='withdrawal').reduce((s,e)=>s+e.cents,0),days:new Set(group.filter(e=>e.kind==='yield').map(e=>e.date)).size,count:group.filter(e=>e.kind==='yield').length};}
+  const totalBalance=()=>state.initialCents+state.entries.reduce((s,e)=>s+accountedAmount(e),0);
   function renderHome(){
     const total=totalBalance(), target=state.goalCents, remaining=Math.max(0,target-total), pct=target>0?Math.max(0,Math.min(100,total/target*100)):0;
     const mo=monthLocal(),m=monthly(mo);
@@ -68,15 +72,15 @@
     $('monthlyDeposits').textContent=money(m.deposits);
     $('monthlyWithdrawals').textContent=money(m.withdrawals);
     $('monthlyOpening').textContent=money(m.opening);
-    $('monthlyEnding').textContent=money(m.opening+m.yield+m.deposits-m.withdrawals);
+    $('monthlyEnding').textContent=money(m.closing);
     renderChart();
   }
   function monthsBetween(start,end){ const out=[];const [sy,sm]=start.split('-').map(Number);const [ey,em]=end.split('-').map(Number);let y=sy,m=sm;while(y<ey||(y===ey&&m<=em)){out.push(`${y}-${String(m).padStart(2,'0')}`);m++;if(m>12){m=1;y++;}if(out.length>240)break;}return out; }
   function renderChart(){
-    const all=state.entries.map(e=>e.date.slice(0,7)); const start=all.length?[state.startedAt.slice(0,7),...all].sort()[0]:state.startedAt.slice(0,7);
+    const start=state.startedAt.slice(0,7);
     const months=monthsBetween(start,monthLocal()).slice(-6);
     if(!months.length){$('chartArea').textContent='Sem dados para o gráfico.';return;}
-    const vals=months.map(m=>{const group=state.entries.filter(e=>e.date.slice(0,7)<=m);return state.initialCents+group.reduce((s,e)=>s+signedAmount(e),0);});
+    const vals=months.map(m=>{const group=state.entries.filter(e=>e.date.slice(0,7)<=m);return state.initialCents+group.reduce((s,e)=>s+accountedAmount(e),0);});
     const min=Math.min(...vals),max=Math.max(...vals),range=Math.max(1,max-min);
     const w=330,h=160,top=18,bottom=32,left=8,right=8,usableW=w-left-right,usableH=h-top-bottom;
     const points=vals.map((v,i)=>({x:left+(months.length===1?usableW/2:i*usableW/(months.length-1)),y:top+(max-v)/range*usableH}));
@@ -103,7 +107,8 @@
       const lhs=document.createElement('div');lhs.className='entry-left';
       const mark=document.createElement('div');mark.className='entry-mark'+(e.kind==='withdrawal'?' withdrawal':'');mark.textContent=e.kind==='withdrawal'?'−':e.kind==='deposit'?'+':'↗';
       const info=document.createElement('div');const nm=document.createElement('div');nm.className='entry-name';nm.textContent=typeLabel(e.kind);const dt=document.createElement('div');dt.className='entry-date';dt.textContent=formatDate(e.date);info.append(nm,dt);
-      if(e.note){const note=document.createElement('div');note.className='entry-note';note.textContent=e.note;info.append(note);}lhs.append(mark,info);
+      if(e.note){const note=document.createElement('div');note.className='entry-note';note.textContent=e.note;info.append(note);}
+      if(e.includedInInitial){const flag=document.createElement('span');flag.className='historical-label';flag.textContent='Já incluído no patrimônio inicial';info.append(flag);}lhs.append(mark,info);
       const rhs=document.createElement('div');rhs.className='entry-right';const value=document.createElement('div');value.className='entry-sum'+(signedAmount(e)<0?' negative':'');value.textContent=`${signedAmount(e)>0?'+':''}${money(signedAmount(e))}`;
       const actions=document.createElement('div');actions.className='action-row';const edit=document.createElement('button');edit.type='button';edit.textContent='Editar';edit.addEventListener('click',()=>beginEdit(e.id));const del=document.createElement('button');del.type='button';del.textContent='Excluir';del.addEventListener('click',()=>removeEntry(e.id));actions.append(edit,del);rhs.append(value,actions);row.append(lhs,rhs);list.append(row);
     }
@@ -120,8 +125,19 @@
     $('saveEntry').textContent=editingId!==null?'Salvar alteração':`Salvar ${typeLabel(kind).toLowerCase()}`;
     $('valueHint').textContent=kind==='yield'?'Para um rendimento negativo, coloque − antes do valor.':kind==='deposit'?'Aporte feito: será somado ao patrimônio.':'Retirada feita: será descontada do patrimônio.';
   }
-  function resetEntry(){editingId=null;$('entryForm').reset();$('entryDate').value=dateLocal();$('entryNote').value='';$('entryFormTitle').textContent='Novo lançamento';$('cancelEdit').classList.add('hidden');changeKind('yield');}
-  function beginEdit(id){const e=state.entries.find(x=>x.id===id);if(!e)return;editingId=id;$('entryAmount').value=fmtNumber(e.cents);$('entryDate').value=e.date;$('entryNote').value=e.note;$('entryFormTitle').textContent='Editar lançamento';$('cancelEdit').classList.remove('hidden');changeKind(e.kind);navigate('add');}
+  function updateDateControls(preserveCheck=false){
+    const date=$('entryDate').value,older=isDate(date)&&date<state.startedAt;
+    const wrap=$('alreadyInInitialBox');const wasOlder=!wrap.classList.contains('hidden');
+    wrap.classList.toggle('hidden',!older);
+    if(older&&!wasOlder&&!preserveCheck)$('entryAlreadyIncluded').checked=true;
+    if(!older)$('entryAlreadyIncluded').checked=false;
+    $('dateToday').classList.toggle('active',date===dateLocal());
+    $('datePast').classList.toggle('active',date!==dateLocal());
+    $('dateHelp').textContent=older?'Você escolheu uma data anterior ao início do acompanhamento. Confira se esse valor já está no patrimônio inicial.':'Você pode escolher o dia exato dos rendimentos anotados no seu caderno.';
+  }
+  function resetEntry(){editingId=null;$('entryForm').reset();$('entryDate').value=dateLocal();$('entryAlreadyIncluded').checked=false;$('alreadyInInitialBox').classList.add('hidden');$('entryNote').value='';$('entryFormTitle').textContent='Novo lançamento';$('cancelEdit').classList.add('hidden');changeKind('yield');updateDateControls();}
+  function beginEdit(id){const e=state.entries.find(x=>x.id===id);if(!e)return;editingId=id;$('entryAmount').value=fmtNumber(e.cents);$('entryDate').value=e.date;$('entryNote').value=e.note;$('entryAlreadyIncluded').checked=e.includedInInitial===true;$('alreadyInInitialBox').classList.add('hidden');$('entryFormTitle').textContent='Editar lançamento';$('cancelEdit').classList.remove('hidden');changeKind(e.kind);updateDateControls(true);navigate('add');}
+  function newPastEntry(){resetEntry();$('entryDate').value=previousMonthStart();updateDateControls();navigate('add');} 
   function removeEntry(id){const e=state.entries.find(x=>x.id===id);if(!e)return;if(!window.confirm(`Excluir ${typeLabel(e.kind).toLowerCase()} de ${formatDate(e.date)} no valor de ${money(e.cents)}?`))return;
     const next={...state,entries:state.entries.filter(x=>x.id!==id)};if(persist(next)){renderAll();toast('Lançamento excluído.');}
   }
@@ -129,9 +145,13 @@
     if(!validKind(kind)||cents===null||(kind!=='yield'&&cents<=0)){toast('Informe um valor válido. Aportes e retiradas devem ser positivos.');return;}
     if(!isDate(date)){toast('Informe uma data válida.');return;}
     if(kind==='yield'&&state.entries.some(e=>e.kind==='yield'&&e.date===date&&e.id!==editingId)){toast('Já existe rendimento nessa data. Use Histórico para editar.');return;}
-    const record={id:editingId||`${Date.now()}-${Math.random().toString(36).slice(2,11)}`,kind,date,cents,note};
+    const record={id:editingId||`${Date.now()}-${Math.random().toString(36).slice(2,11)}`,kind,date,cents,note,includedInInitial:date<state.startedAt&&$('entryAlreadyIncluded').checked};
     const next={...state,entries:editingId?state.entries.map(e=>e.id===editingId?record:e):[...state.entries,record]};
-    if(persist(next)){renderAll();resetEntry();navigate('home');toast('Lançamento salvo! Patrimônio atualizado.');}
+    if(persist(next)){
+      const past=date<dateLocal();resetEntry();
+      if(past){$('entryDate').value=date;updateDateControls();$('monthPicker').value=date.slice(0,7);renderAll();navigate('add');toast('Data anterior salva! Você pode lançar o próximo dia.');}
+      else{renderAll();navigate('home');toast('Lançamento salvo! Patrimônio atualizado.');}
+    }
   }
   function onSettingsSubmit(ev){ev.preventDefault();const ini=parseCents($('initialBalance').value),goal=parseCents($('goalAmount').value);
     if(ini===null||ini<0||goal===null||goal<=0){toast('Confira os valores. A meta precisa ser maior que zero.');return;}
@@ -147,8 +167,8 @@
   }
   function exportBackup(){const name=`rumo-ao-milhao-backup-${dateLocal()}.json`;const blob=new File([JSON.stringify({...state,exportedAt:new Date().toISOString()},null,2)],name,{type:'application/json'});shareOrDownload(blob,name);}
   function csvCell(v){let s=String(v??'');if(/^[\s]*[=+@\-\t\r]/.test(s))s="'"+s;return `"${s.replace(/"/g,'""')}"`;}
-  function exportCsv(){const rows=[['Data','Tipo','Valor (R$)','Observação']];
-    for(const e of state.entries.slice().sort((a,b)=>a.date.localeCompare(b.date)))rows.push([formatDate(e.date),typeLabel(e.kind),(signedAmount(e)/100).toFixed(2).replace('.',','),e.note]);
+  function exportCsv(){const rows=[['Data','Tipo','Valor (R$)','Observação','Já incluído no patrimônio inicial?']];
+    for(const e of state.entries.slice().sort((a,b)=>a.date.localeCompare(b.date)))rows.push([formatDate(e.date),typeLabel(e.kind),(signedAmount(e)/100).toFixed(2).replace('.',','),e.note,e.includedInInitial?'Sim':'Não']);
     const body='\ufeff'+rows.map(row=>row.map(csvCell).join(';')).join('\r\n');const filename=`rumo-ao-milhao-historico-${dateLocal()}.csv`;const file=new File([body],filename,{type:'text/csv;charset=utf-8'});shareOrDownload(file,filename);
   }
   async function importBackup(e){const file=e.target.files?.[0];e.target.value='';if(!file)return;
@@ -164,7 +184,7 @@
     const update=()=>{const dot=document.createElement('span');dot.className='status-dot';el.replaceChildren(dot,document.createTextNode(navigator.onLine?' Pronto para uso offline':' Você está sem internet; o app continua funcionando.'));};
     navigator.serviceWorker.register('./sw.js',{scope:'./'}).then(()=>navigator.serviceWorker.ready).then(()=>{update();window.addEventListener('online',update);window.addEventListener('offline',update);}).catch(err=>{console.warn('Offline indisponível:',err);el.textContent='Offline ainda não disponível. Abra o link HTTPS no Safari com internet e recarregue.';});
   }
-  function init(){load();$('entryDate').value=dateLocal();$('monthPicker').value=monthLocal();renderAll();if(!state.setupComplete)$('welcomeModal').classList.remove('hidden');
+  function init(){load();$('entryDate').value=dateLocal();$('monthPicker').value=monthLocal();updateDateControls();renderAll();if(!state.setupComplete)$('welcomeModal').classList.remove('hidden');
     by('.nav-item').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.view)));
     by('.type-chip').forEach(b=>b.addEventListener('click',()=>changeKind(b.dataset.kind)));
     $('entryForm').addEventListener('submit',onEntrySubmit);
@@ -172,6 +192,10 @@
     $('settingsForm').addEventListener('submit',onSettingsSubmit);
     $('welcomeForm').addEventListener('submit',onWelcomeSubmit);
     $('homeNewYield').addEventListener('click',()=>{resetEntry();navigate('add');});
+    $('homePastYield').addEventListener('click',newPastEntry);
+    $('dateToday').addEventListener('click',()=>{$('entryDate').value=dateLocal();updateDateControls();});
+    $('datePast').addEventListener('click',()=>{$('entryDate').value=previousMonthStart();updateDateControls();$('entryDate').focus();});
+    $('entryDate').addEventListener('change',()=>updateDateControls());
     $('settingsShortcut').addEventListener('click',()=>navigate('settings'));
     $('monthPicker').addEventListener('change',renderHistory);
     $('exportBackup').addEventListener('click',exportBackup);
