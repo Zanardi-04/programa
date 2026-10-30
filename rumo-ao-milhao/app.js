@@ -1,4 +1,4 @@
-/* Rumo ao 1 Milhão 1.2 — dados e cálculos feitos somente neste dispositivo. */
+/* Rumo ao 1 Milhão 1.3 — dados e cálculos feitos somente neste dispositivo. */
 'use strict';
 (() => {
   const KEY = 'rumo-ao-milhao-v1';
@@ -56,6 +56,26 @@
   function monthly(month){const group=state.entries.filter(e=>e.date.startsWith(month));const opening=state.initialCents+entriesBefore(month);
     return {opening,closing:opening+group.reduce((s,e)=>s+accountedAmount(e),0),yield:group.filter(e=>e.kind==='yield').reduce((s,e)=>s+e.cents,0),deposits:group.filter(e=>e.kind==='deposit').reduce((s,e)=>s+e.cents,0),withdrawals:group.filter(e=>e.kind==='withdrawal').reduce((s,e)=>s+e.cents,0),days:new Set(group.filter(e=>e.kind==='yield').map(e=>e.date)).size,count:group.filter(e=>e.kind==='yield').length};}
   const totalBalance=()=>state.initialCents+state.entries.reduce((s,e)=>s+accountedAmount(e),0);
+  function pendingYields(){return state.entries.filter(e=>e.kind==='yield'&&e.includedInInitial===true);}
+  function renderYieldFixNotice(){
+    const entries=pendingYields(),panel=$('yieldFixNotice');
+    panel.classList.toggle('hidden',entries.length===0);
+    if(!entries.length)return;
+    const sum=entries.reduce((s,e)=>s+e.cents,0);
+    $('yieldFixText').textContent=`${entries.length} ${entries.length===1?'rendimento antigo está marcado':'rendimentos antigos estão marcados'} como "já incluído no patrimônio inicial" e ${entries.length===1?'não foi somado':'não foram somados'} ao saldo (${money(sum)}). Se esse valor ainda não faz parte do seu patrimônio inicial, você pode corrigi-lo em um toque.`;
+    $('yieldFixButton').textContent=`Somar ${money(sum)} ao patrimônio`;
+  }
+  function fixPendingYields(){
+    const entries=pendingYields();
+    if(!entries.length){renderAll();return;}
+    const sum=entries.reduce((s,e)=>s+e.cents,0);
+    const nextBalance=totalBalance()+sum;
+    const prompt=`Corrigir ${entries.length} ${entries.length===1?'rendimento antigo':'rendimentos antigos'}?\n\nValor que será somado: ${money(sum)}\nSaldo atual: ${money(totalBalance())}\nNovo saldo: ${money(nextBalance)}\n\nCONFIRME SOMENTE SE esses rendimentos ainda NÃO fazem parte do patrimônio inicial de ${money(state.initialCents)}. Caso já estejam incluídos, toque em Cancelar para evitar contagem duplicada.\n\nDeseja somar agora?`;
+    if(!window.confirm(prompt))return;
+    const ids=new Set(entries.map(e=>e.id));
+    const next={...state,entries:state.entries.map(e=>ids.has(e.id)?{...e,includedInInitial:false}:e)};
+    if(persist(next)){renderAll();toast(`Rendimentos corrigidos! Patrimônio: ${money(totalBalance())}`);}
+  }
   function renderHome(){
     const total=totalBalance(), target=state.goalCents, remaining=Math.max(0,target-total), pct=target>0?Math.max(0,Math.min(100,total/target*100)):0;
     const mo=monthLocal(),m=monthly(mo);
@@ -73,6 +93,7 @@
     $('monthlyWithdrawals').textContent=money(m.withdrawals);
     $('monthlyOpening').textContent=money(m.opening);
     $('monthlyEnding').textContent=money(m.closing);
+    renderYieldFixNotice();
     renderChart();
   }
   function monthsBetween(start,end){ const out=[];const [sy,sm]=start.split('-').map(Number);const [ey,em]=end.split('-').map(Number);let y=sy,m=sm;while(y<ey||(y===ey&&m<=em)){out.push(`${y}-${String(m).padStart(2,'0')}`);m++;if(m>12){m=1;y++;}if(out.length>240)break;}return out; }
@@ -194,6 +215,7 @@
     $('welcomeForm').addEventListener('submit',onWelcomeSubmit);
     $('homeNewYield').addEventListener('click',()=>{resetEntry();navigate('add');});
     $('homePastYield').addEventListener('click',newPastEntry);
+    $('yieldFixButton').addEventListener('click',fixPendingYields);
     $('dateToday').addEventListener('click',()=>{$('entryDate').value=dateLocal();updateDateControls();});
     $('datePast').addEventListener('click',()=>{$('entryDate').value=previousMonthStart();updateDateControls();$('entryDate').focus();});
     $('entryDate').addEventListener('change',()=>updateDateControls());
