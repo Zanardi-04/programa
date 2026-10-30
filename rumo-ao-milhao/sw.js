@@ -1,6 +1,6 @@
 /* Cache exclusivo desta instalação; sem redes externas. */
 'use strict';
-const CACHE = 'rumo-ao-milhao-static-v1-1-20261030';
+const CACHE = 'rumo-ao-milhao-static-v1-2-20261030';
 const ASSETS = ['./','./index.html','./styles.css','./app.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png'];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
