@@ -1,4 +1,4 @@
-/* Rumo ao 1 Milhão 1.1 — dados e cálculos feitos somente neste dispositivo. */
+/* Rumo ao 1 Milhão 1.2 — dados e cálculos feitos somente neste dispositivo. */
 'use strict';
 (() => {
   const KEY = 'rumo-ao-milhao-v1';
@@ -125,18 +125,19 @@
     $('saveEntry').textContent=editingId!==null?'Salvar alteração':`Salvar ${typeLabel(kind).toLowerCase()}`;
     $('valueHint').textContent=kind==='yield'?'Para um rendimento negativo, coloque − antes do valor.':kind==='deposit'?'Aporte feito: será somado ao patrimônio.':'Retirada feita: será descontada do patrimônio.';
   }
-  function updateDateControls(preserveCheck=false){
+  function updateDateControls(){
     const date=$('entryDate').value,older=isDate(date)&&date<state.startedAt;
-    const wrap=$('alreadyInInitialBox');const wasOlder=!wrap.classList.contains('hidden');
+    const wrap=$('alreadyInInitialBox');
     wrap.classList.toggle('hidden',!older);
-    if(older&&!wasOlder&&!preserveCheck)$('entryAlreadyIncluded').checked=true;
+    // Nunca marcar automaticamente: rendimentos antigos devem entrar no saldo
+    // salvo quando a pessoa indicar que já estavam no patrimônio inicial.
     if(!older)$('entryAlreadyIncluded').checked=false;
     $('dateToday').classList.toggle('active',date===dateLocal());
     $('datePast').classList.toggle('active',date!==dateLocal());
-    $('dateHelp').textContent=older?'Você escolheu uma data anterior ao início do acompanhamento. Confira se esse valor já está no patrimônio inicial.':'Você pode escolher o dia exato dos rendimentos anotados no seu caderno.';
+    $('dateHelp').textContent=older?'Este lançamento será somado ao patrimônio. Marque a opção abaixo somente se o valor já estava incluído no patrimônio inicial.':'Rendimentos e aportes registrados serão somados ao patrimônio automaticamente.';
   }
   function resetEntry(){editingId=null;$('entryForm').reset();$('entryDate').value=dateLocal();$('entryAlreadyIncluded').checked=false;$('alreadyInInitialBox').classList.add('hidden');$('entryNote').value='';$('entryFormTitle').textContent='Novo lançamento';$('cancelEdit').classList.add('hidden');changeKind('yield');updateDateControls();}
-  function beginEdit(id){const e=state.entries.find(x=>x.id===id);if(!e)return;editingId=id;$('entryAmount').value=fmtNumber(e.cents);$('entryDate').value=e.date;$('entryNote').value=e.note;$('entryAlreadyIncluded').checked=e.includedInInitial===true;$('alreadyInInitialBox').classList.add('hidden');$('entryFormTitle').textContent='Editar lançamento';$('cancelEdit').classList.remove('hidden');changeKind(e.kind);updateDateControls(true);navigate('add');}
+  function beginEdit(id){const e=state.entries.find(x=>x.id===id);if(!e)return;editingId=id;$('entryAmount').value=fmtNumber(e.cents);$('entryDate').value=e.date;$('entryNote').value=e.note;$('entryAlreadyIncluded').checked=e.includedInInitial===true;$('alreadyInInitialBox').classList.add('hidden');$('entryFormTitle').textContent='Editar lançamento';$('cancelEdit').classList.remove('hidden');changeKind(e.kind);updateDateControls();navigate('add');}
   function newPastEntry(){resetEntry();$('entryDate').value=previousMonthStart();updateDateControls();navigate('add');} 
   function removeEntry(id){const e=state.entries.find(x=>x.id===id);if(!e)return;if(!window.confirm(`Excluir ${typeLabel(e.kind).toLowerCase()} de ${formatDate(e.date)} no valor de ${money(e.cents)}?`))return;
     const next={...state,entries:state.entries.filter(x=>x.id!==id)};if(persist(next)){renderAll();toast('Lançamento excluído.');}
@@ -149,7 +150,7 @@
     const next={...state,entries:editingId?state.entries.map(e=>e.id===editingId?record:e):[...state.entries,record]};
     if(persist(next)){
       const past=date<dateLocal();resetEntry();
-      if(past){$('entryDate').value=date;updateDateControls();$('monthPicker').value=date.slice(0,7);renderAll();navigate('add');toast('Data anterior salva! Você pode lançar o próximo dia.');}
+      if(past){$('entryDate').value=date;updateDateControls();$('monthPicker').value=date.slice(0,7);renderAll();navigate('add');toast(record.includedInInitial?'Histórico salvo sem alterar o patrimônio.':'Data anterior salva! Patrimônio atualizado.');}
       else{renderAll();navigate('home');toast('Lançamento salvo! Patrimônio atualizado.');}
     }
   }
