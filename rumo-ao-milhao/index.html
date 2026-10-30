@@ -75,7 +75,7 @@
             <small id="dateHelp" class="field-hint">Toque em “Outra data (caderno)” para registrar rendimentos do mês passado.</small>
             <div class="historical-toggle hidden" id="alreadyInInitialBox">
               <label for="entryAlreadyIncluded"><input type="checkbox" id="entryAlreadyIncluded"> Esse valor já estava no meu patrimônio inicial</label>
-              <small>Deixe marcado se o valor já faz parte do saldo informado quando você começou a usar o app. Ele aparecerá no histórico do mês correto, sem ser somado novamente ao patrimônio atual.</small>
+              <small>Marque esta opção apenas se o valor já estiver no patrimônio inicial. Por padrão, o lançamento será somado ao saldo atual.</small>
             </div>
             <label for="entryNote">Observação <span class="optional">(opcional)</span></label><input type="text" id="entryNote" placeholder="Ex.: CDB, investimento..." maxlength="100">
             <button class="primary-button" type="submit" id="saveEntry">Salvar rendimento</button>
@@ -104,7 +104,7 @@
         <section class="surface form-card"><h2>Backup e restauração</h2><p class="settings-copy">As informações são guardadas neste iPhone, não no GitHub. Exporte uma cópia regularmente para o app Arquivos ou iCloud Drive, porque limpar dados de sites ou remover o app pode apagar os registros locais.</p><button class="secondary-button" type="button" id="exportBackup">↓ Fazer backup (.json)</button><label for="importBackup" class="file-button">↥ Restaurar backup</label><input id="importBackup" type="file" accept="application/json,.json" class="visually-hidden"><small class="field-hint">Restaurar substitui os registros atuais após sua confirmação.</small></section>
         <section class="surface info-card"><h2>Funciona sem internet</h2><p>Após a primeira abertura e instalação pelo Safari, o app pode funcionar offline. O GitHub Pages hospeda apenas os arquivos do programa; seus valores não são enviados a ele.</p><div class="status-line" id="offlineStatus"><span class="status-dot"></span> Verificando disponibilidade offline...</div><p class="field-hint">Recomenda-se abrir o app uma vez com internet antes de usar offline.</p></section>
         <button class="danger-link" id="clearData">Apagar meus registros e recomeçar</button>
-        <p class="foot-note">Rumo ao 1 Milhão · aplicativo pessoal · versão 1.1</p>
+        <p class="foot-note">Rumo ao 1 Milhão · aplicativo pessoal · versão 1.2</p>
       </section>
     </main>
     <nav class="bottom-nav" aria-label="Navegação principal"><button class="nav-item active" data-view="home" aria-current="page"><span class="nav-symbol">⌂</span><small>Início</small></button><button class="nav-item" data-view="add"><span class="nav-symbol">⊕</span><small>Lançar</small></button><button class="nav-item" data-view="history"><span class="nav-symbol">▤</span><small>Histórico</small></button><button class="nav-item" data-view="settings"><span class="nav-symbol">⚙</span><small>Ajustes</small></button></nav>
